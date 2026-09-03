@@ -1,6 +1,6 @@
 import { createGenericFile, type Umi } from "@metaplex-foundation/umi";
 import { readFile } from "fs/promises";
-import pc from "picocolors";
+import pc from "../color";
 import { buildUmi } from "./client";
 
 // Uploads image to Irys (Arweave) and returns gateway URI.
@@ -13,7 +13,7 @@ export async function uploadImage(
   const file = createGenericFile(image, "pixelnft.png", { contentType: "image/png" });
   const [myUri] = await umi.uploader.upload([file]);
   if (!myUri) throw new Error("Irys upload failed: no URI");
-  console.log(pc.dim('Your image URI: ') + pc.cyan(myUri));
+  console.log(pc.dim("Your image URI: ") + pc.cyan(myUri));
   return myUri;
 }
 

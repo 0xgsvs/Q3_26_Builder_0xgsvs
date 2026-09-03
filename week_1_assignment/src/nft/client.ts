@@ -31,7 +31,11 @@ export function buildUmi(
 
 export function getExplorerUrl(signature: string, rpcUrl?: string): string {
   const url = rpcUrl ?? process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
-  const cluster = url.includes("mainnet") ? "mainnet-beta" : url.includes("devnet") ? "devnet" : "custom&customUrl=http://localhost:8899";
+  const cluster = url.includes("mainnet")
+    ? "mainnet-beta"
+    : url.includes("devnet")
+      ? "devnet"
+      : "custom&customUrl=http://localhost:8899";
   return `https://explorer.solana.com/tx/${signature}?cluster=${cluster}`;
 }
 

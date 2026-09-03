@@ -1,5 +1,5 @@
 import type { Umi } from "@metaplex-foundation/umi";
-import pc from "picocolors";
+import pc from "../color";
 import { buildUmi, IMAGE_URI } from "./client";
 
 export async function uploadMetadata(
@@ -15,7 +15,7 @@ export async function uploadMetadata(
   };
 
   const myUri = await umi.uploader.uploadJson(metadata);
-  console.log(pc.dim('metadata uri: ') + pc.cyan(myUri));
+  console.log(pc.dim("metadata uri: ") + pc.cyan(myUri));
   return myUri;
 }
 

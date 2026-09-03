@@ -1,6 +1,6 @@
 import { publicKey, type PublicKey, type Umi } from "@metaplex-foundation/umi";
 import { fetchAsset as fetchAssetHelper, fetchAssetsByOwner } from "@metaplex-foundation/mpl-core";
-import pc from "picocolors";
+import pc from "../color";
 import { buildUmi } from "./client";
 
 export async function fetchAsset(
@@ -19,7 +19,12 @@ export async function fetchAsset(
       lastErr = e;
       const msg = String(e?.message ?? e);
       // Only retry on not-found / account missing, not on logic errors
-      if (!msg.includes("was not found") && !msg.includes("AccountNotFound") && !msg.includes("not found")) throw e;
+      if (
+        !msg.includes("was not found") &&
+        !msg.includes("AccountNotFound") &&
+        !msg.includes("not found")
+      )
+        throw e;
       if (i === retries - 1) throw e;
       await new Promise((r) => setTimeout(r, delayMs));
     }
@@ -42,6 +47,9 @@ if (import.meta.main) {
   } else {
     const assets = await fetchAssetsForOwner(umi);
     console.log(pc.yellow(`Found ${assets.length} assets for ${umi.identity.publicKey}`));
-    for (const a of assets) console.log(pc.green(`- ${a.publicKey}`) + pc.dim(` | ${a.name} | ${a.uri} | owner:${a.owner}`));
+    for (const a of assets)
+      console.log(
+        pc.green(`- ${a.publicKey}`) + pc.dim(` | ${a.name} | ${a.uri} | owner:${a.owner}`),
+      );
   }
 }

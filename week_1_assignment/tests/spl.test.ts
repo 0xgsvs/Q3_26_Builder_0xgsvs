@@ -1,37 +1,32 @@
-import { beforeAll, describe, expect, test } from 'bun:test';
-import { address, type Address } from '@solana/kit';
-import { litesvm } from '@solana/kit-plugin-litesvm';
+import { beforeAll, describe, expect, test } from "vitest";
+import { address, type Address } from "@solana/kit";
+import { litesvm } from "@solana/kit-plugin-litesvm";
 import {
   fetchToken,
   fetchMint,
   findAssociatedTokenPda,
   TOKEN_PROGRAM_ADDRESS,
-} from '@solana-program/token';
-import {
-  buildSplClient,
-  initMint,
-  mintToPayer,
-  transferToRecipient,
-} from '../src/spl.ts';
+} from "@solana-program/token";
+import { buildSplClient, initMint, mintToPayer, transferToRecipient } from "../src/spl.ts";
 
 const MINT_AMOUNT = 2_000_000_000n;
-const RECIPIENT = address('9aDCHGpiQdGber46fa2hXCC1wYp3bu4f28Tc5fV26fzo');
+const RECIPIENT = address("9aDCHGpiQdGber46fa2hXCC1wYp3bu4f28Tc5fV26fzo");
 
 type SplClient = Awaited<ReturnType<typeof buildSplClient>>;
 
 async function tokenBalance(client: SplClient, ata: Address) {
-  const account = await fetchToken(client.rpc, ata, { commitment: 'confirmed' });
+  const account = await fetchToken(client.rpc, ata, { commitment: "confirmed" });
   return account.data.amount;
 }
 
 async function mintSupply(client: SplClient, mint: Address) {
-  const account = await fetchMint(client.rpc, mint, { commitment: 'confirmed' });
+  const account = await fetchMint(client.rpc, mint, { commitment: "confirmed" });
   return account.data.supply;
 }
 
 // Single shared lifecycle: init -> mint -> transfer runs exactly once.
 // Tests are ordered and share `client`/`mint`/`ata` so the flow is not duplicated.
-describe('SPL token flow (single run)', () => {
+describe("SPL token flow (single run)", () => {
   let client: SplClient;
   let mint: { address: Address };
   let ata: Address;
@@ -40,7 +35,7 @@ describe('SPL token flow (single run)', () => {
     client = await buildSplClient(litesvm());
   });
 
-  test('initMint creates a mint with zero supply and derives ATA', async () => {
+  test("initMint creates a mint with zero supply and derives ATA", async () => {
     const result = await initMint(client);
     mint = result.mint;
     ata = result.ata;
@@ -55,7 +50,7 @@ describe('SPL token flow (single run)', () => {
     expect(ata).toBe(expectedAta);
   });
 
-  test('mintToPayer mints into the payer ATA and raises supply', async () => {
+  test("mintToPayer mints into the payer ATA and raises supply", async () => {
     expect(mint).toBeDefined();
     await mintToPayer(client, mint);
 
@@ -63,7 +58,7 @@ describe('SPL token flow (single run)', () => {
     expect(await mintSupply(client, mint.address)).toBe(MINT_AMOUNT);
   });
 
-  test('transferToRecipient moves full MINT_AMOUNT between ATAs', async () => {
+  test("transferToRecipient moves full MINT_AMOUNT between ATAs", async () => {
     expect(mint).toBeDefined();
     await transferToRecipient(client, mint);
 

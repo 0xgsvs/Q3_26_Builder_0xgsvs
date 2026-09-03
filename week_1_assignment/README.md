@@ -1,6 +1,6 @@
 # Week 1 Assignment — SPL + MPL Core NFT
 
-Two tasks in one repo: **SPL token lifecycle** and **MPL Core NFT lifecycle** (Umi + Irys). Both use colorized logs via `picocolors`.
+Two tasks in one repo: **SPL token lifecycle** and **MPL Core NFT lifecycle** (Umi + Irys). Both use zero-dep colorized terminal logs.
 
 ## Why localhost for SPL and devnet for NFT
 
@@ -23,6 +23,7 @@ Init a mint, mint to payer ATA, transfer to recipient — all via `@solana/kit` 
 - Colorized: `magenta` headers, `green` wallet/mint, `cyan` explorer `?cluster=custom`.
 
 Run live (needs Surfpool `solana-test-validator`):
+
 ```bash
 bun src/spl.ts
 ```
@@ -47,6 +48,7 @@ src/nft/
 - **Logs** — `dim` labels, `green` sig/asset, `cyan` explorer (`?cluster=devnet` + `core.metaplex.com`), `yellow` updated fields, `red` burn.
 
 Standalone:
+
 ```bash
 bun src/nft/nft_image.ts      # upload pixelnft.png → BS8y...
 bun src/nft/nft_metadata.ts   # upload JSON → 6ZeGF...
@@ -66,24 +68,28 @@ bun src/nft/nft_burn.ts <asset>       # burn one
 bun install
 
 # SPL — fast, local (litesvm, no network)
-bun test tests/spl.test.ts
+bun run test:spl
 # → Init/Mint/Transfer with custom explorer links, asserts supply/balances
 
 # NFT — real devnet (needs network + funded devnet-wallet.json)
-bun test tests/nft.test.ts --timeout 120000
+bun run test:nft
 # → mint (reuse 6ZeGF...) → fetch → update (→ poll 800ms×12 for finality) → fetch → burn → poll until not found
 # If 429 rate-limited, retry is built in (see nft_fetch.ts:5 retries=12)
 
-# All
-bun test --timeout 120000
+# All tests (Vitest)
+bun run test
 # 6 pass (3 SPL + 3 NFT)
 
 # Typecheck
-bunx tsc --noEmit
+bun run typecheck
+
+# Lint & Format
+bun run lint
+bun run format:check
 ```
 
 ## Notes
 
 - **Arweave permanence** — `gateway.irys.xyz/...` is not deleted by `burn`; only the on-chain `AssetV1` (`CoREENxT...`) is closed. Keep hardcoding URIs unless you need new metadata.
 - **Devnet finality** — `nft_fetch.ts:5` retries on `AccountNotFoundError` and tests poll after `updateV1`/`burn` to handle 1-3s propagation and `429 Too Many Requests` retries.
-- **Colors** — via `picocolors@1.1.1` (auto TTY, `FORCE_COLOR=1` to force). Headers `magenta.bold`, explorer `cyan`, addresses `green`.
+- **Colors** — via native ANSI color helper (`src/color.ts`, zero-dependency). Headers `magenta.bold`, explorer `cyan`, addresses `green`.

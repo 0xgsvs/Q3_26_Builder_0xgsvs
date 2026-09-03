@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "node_modules",
+    ".surfpool",
+    ".omo",
+    ".senpi",
+    "devnet-wallet.json",
+    "bun.lock"
+  ]
+}

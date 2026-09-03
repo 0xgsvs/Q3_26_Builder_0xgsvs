@@ -1,7 +1,7 @@
 import { publicKey, some, type PublicKey, type Umi } from "@metaplex-foundation/umi";
 import { updateV1 } from "@metaplex-foundation/mpl-core";
 import { base58 } from "@metaplex-foundation/umi/serializers";
-import pc from "picocolors";
+import pc from "../color";
 import { buildUmi, getExplorerUrl } from "./client";
 
 export async function updateNft(
@@ -20,7 +20,14 @@ export async function updateNft(
   }).sendAndConfirm(umi);
 
   const signature = base58.deserialize(result.signature)[0];
-  console.log(pc.dim('updated asset:') + pc.green(String(assetPk)) + pc.dim(' newName:') + pc.yellow(newName) + pc.dim(' newUri:') + pc.cyan(newUri));
+  console.log(
+    pc.dim("updated asset:") +
+      pc.green(String(assetPk)) +
+      pc.dim(" newName:") +
+      pc.yellow(newName) +
+      pc.dim(" newUri:") +
+      pc.cyan(newUri),
+  );
   console.log(pc.cyan(getExplorerUrl(signature)));
 
   return { signature, newName, newUri };
