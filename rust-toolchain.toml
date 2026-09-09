@@ -1,4 +1,5 @@
 [toolchain]
-channel = "1.89.0"
+# v1.89.0 fails in test rs files because of v0.16 litesvm uses newer syscalls 
+channel = "stable"
 components = ["rustfmt", "clippy"]
 profile = "minimal"

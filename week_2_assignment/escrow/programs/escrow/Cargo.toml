@@ -24,12 +24,17 @@ custom-panic = []
 anchor-lang = "1.2.0"
 
 [dev-dependencies]
-litesvm = "0.10.0"
-solana-message = "3.0.1"
-solana-transaction = "3.0.2"
-solana-signer = "3.0.0"
-solana-keypair = "3.0.1"
-
+litesvm = "0.16.0"
+# you should not need to care about the dependency compatibility
+solana-awesome = { git = "https://github.com/blueshift-gg/solana-awesome", branch = "master", features = [
+  "pubkey",
+  "keypair",
+  "signer",
+  "message",
+  "transaction",
+] }
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(target_os, values("solana"))',
+] }
