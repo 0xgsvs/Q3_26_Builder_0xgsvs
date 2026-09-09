@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
-#[account]
 #[derive(InitSpace)]
-pub struct Counter {
-    pub count: u64,
-    pub authority: Pubkey,
+#[account]
+pub struct VaultState {
+    pub vault_bump: u8,
+    pub state_bump: u8,
 }

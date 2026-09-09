@@ -4,6 +4,7 @@ pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
+
 pub use constants::*;
 pub use instructions::*;
 pub use state::*;
@@ -14,11 +15,23 @@ declare_id!("J24rwama28rwAbd8qr9Vgm36c13TjGXmWHZNqPTHkGX6");
 pub mod vault {
     use super::*;
 
+    // Initialize
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        crate::instructions::initialize::handle_initialize(ctx)
+        ctx.accounts.intialize(&ctx.bumps)
     }
 
-    pub fn increment(ctx: Context<Increment>) -> Result<()> {
-        crate::instructions::increment::handle_increment(ctx)
+    // deposit funds
+    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+        ctx.accounts.deposit(amount)
+    }
+
+    // withdraw funds
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        ctx.accounts.withdraw(amount)
+    }
+
+    // close
+    pub fn close(ctx: Context<Close>) -> Result<()> {
+        ctx.accounts.close()
     }
 }
