@@ -1,0 +1,42 @@
+[package]
+name = "amm"
+version = "0.1.0"
+description = "Created with Anchor"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "amm"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+
+[dependencies]
+anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }
+anchor-spl = "1.2.0"
+constant-product-curve = { git = "https://github.com/deanmlittle/constant-product-curve.git", rev = "2a723a0ff5ad522f657f80c053c2bb290da28b70" }
+
+[dev-dependencies]
+litesvm = "0.16.0"
+litesvm-token = "0.16.0"
+# you should not need to care about the dependency compatibility
+solana-awesome = { git = "https://github.com/blueshift-gg/solana-awesome", branch = "master", features = [
+  "pubkey",
+  "keypair",
+  "signer",
+  "message",
+  "transaction",
+] }
+
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
