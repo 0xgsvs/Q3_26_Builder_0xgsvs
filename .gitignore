@@ -1,5 +1,6 @@
 .omo/
 .surfpool/
+target/
 devnet-wallet.json
 bun.lock
 
