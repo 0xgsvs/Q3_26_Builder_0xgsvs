@@ -115,6 +115,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "base64 0.22.1",
  "constant-product-curve",
  "litesvm",
  "litesvm-token",

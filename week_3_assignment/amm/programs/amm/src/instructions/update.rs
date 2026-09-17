@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{constants::*, error::AmmError, state::Config};
+use crate::{constants::*, error::AmmError, events::PoolUpdated, state::Config};
 
 #[derive(Accounts)]
 pub struct Update<'info> {
@@ -24,6 +24,14 @@ impl<'info> Update<'info> {
 
         self.config.fee = fee;
         self.config.locked = locked;
+
+        emit!(PoolUpdated {
+            config: self.config.key(),
+            authority: self.authority.key(),
+            fee,
+            locked,
+        });
+
         Ok(())
     }
 }

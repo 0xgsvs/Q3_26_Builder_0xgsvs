@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount},
 };
 
-use crate::{constants::*, error::AmmError, state::Config};
+use crate::{constants::*, error::AmmError, events::PoolInitialized, state::Config};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -72,6 +72,18 @@ impl<'info> Initialize<'info> {
             locked: false,
             config_bump: bumps.config,
             lp_bump: bumps.mint_lp,
+        });
+
+        emit!(PoolInitialized {
+            config: self.config.key(),
+            mint_x: self.mint_x.key(),
+            mint_y: self.mint_y.key(),
+            mint_lp: self.mint_lp.key(),
+            vault_x: self.vault_x.key(),
+            vault_y: self.vault_y.key(),
+            treasury: self.treasury.key(),
+            seed,
+            fee,
         });
 
         Ok(())

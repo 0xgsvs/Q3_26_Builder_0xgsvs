@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 use constant_product_curve::ConstantProduct;
 
-use crate::{constants::*, error::AmmError, state::Config};
+use crate::{constants::*, error::AmmError, events::LiquidityWithdrawn, state::Config};
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -85,7 +85,17 @@ impl<'info> Withdraw<'info> {
 
         self.burn_lp_tokens(amount)?;
         self.withdraw_tokens(true, x)?;
-        self.withdraw_tokens(false, y)
+        self.withdraw_tokens(false, y)?;
+
+        emit!(LiquidityWithdrawn {
+            config: self.config.key(),
+            user: self.user.key(),
+            lp_burned: amount,
+            x_withdrawn: x,
+            y_withdrawn: y,
+        });
+
+        Ok(())
     }
 
     pub fn withdraw_tokens(&self, is_x: bool, amount: u64) -> Result<()> {

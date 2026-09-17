@@ -1,10 +1,11 @@
-use amm::{accounts, instruction};
+use amm::{accounts, events, instruction};
 use anchor_lang::{
-    AccountDeserialize, InstructionData, ToAccountMetas,
+    AccountDeserialize, AnchorDeserialize, Discriminator, InstructionData, ToAccountMetas,
     prelude::Pubkey,
     solana_program::{instruction::Instruction, system_program},
 };
 use anchor_spl::associated_token::get_associated_token_address_with_program_id;
+use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use litesvm::{LiteSVM, types::TransactionResult};
 use litesvm_token::{
     CreateAssociatedTokenAccount, CreateMint, MintToChecked, TOKEN_ID, get_spl_account, spl_token,
@@ -45,6 +46,24 @@ fn token_balance(svm: &LiteSVM, ata: &Address) -> u64 {
     get_spl_account::<spl_token::state::Account>(svm, ata)
         .unwrap()
         .amount
+}
+
+/// Decode the first `Program data:` log whose 8-byte discriminator matches `T`.
+fn parse_event<T>(res: &TransactionResult) -> T
+where
+    T: AnchorDeserialize + Discriminator,
+{
+    let logs = &res.as_ref().expect("transaction failed").logs;
+    let discriminator: &[u8] = T::DISCRIMINATOR;
+    for log in logs {
+        if let Some(b64) = log.strip_prefix("Program data: ") {
+            let bytes = B64.decode(b64.trim()).expect("valid base64 event");
+            if bytes.len() >= 8 && bytes[..8] == *discriminator {
+                return T::try_from_slice(&bytes[8..]).expect("event decodes");
+            }
+        }
+    }
+    panic!("event not found in logs");
 }
 
 fn treasury_x(setup: &Setup) -> Address {
@@ -322,6 +341,17 @@ fn initialize_ok() {
     assert_eq!(config.mint_y, setup.mint_y);
     assert!(!config.locked);
 
+    let event: events::PoolInitialized = parse_event(&res);
+    assert_eq!(event.config, setup.config);
+    assert_eq!(event.mint_x, setup.mint_x);
+    assert_eq!(event.mint_y, setup.mint_y);
+    assert_eq!(event.mint_lp, setup.mint_lp);
+    assert_eq!(event.vault_x, setup.vault_x);
+    assert_eq!(event.vault_y, setup.vault_y);
+    assert_eq!(event.treasury, setup.treasury.pubkey());
+    assert_eq!(event.seed, SEED);
+    assert_eq!(event.fee, FEE_BPS);
+
     let lp = get_spl_account::<spl_token::state::Mint>(&setup.svm, &setup.mint_lp).unwrap();
     assert_eq!(lp.supply, 0);
     assert_eq!(lp.decimals, DECIMALS);
@@ -405,10 +435,18 @@ fn deposit_first_and_second() {
         100_000_000,
         100_000_000,
     );
-    assert!(send(&mut setup.svm, &setup.admin, &[ix]).is_ok());
+    let res = send(&mut setup.svm, &setup.admin, &[ix]);
+    assert!(res.is_ok());
     assert_eq!(token_balance(&setup.svm, &setup.vault_x), 300_000_000);
     assert_eq!(token_balance(&setup.svm, &setup.vault_y), 300_000_000);
     assert_eq!(token_balance(&setup.svm, &user_lp), 150_000_000);
+
+    let event: events::LiquidityDeposited = parse_event(&res);
+    assert_eq!(event.config, setup.config);
+    assert_eq!(event.user, setup.admin.pubkey());
+    assert_eq!(event.lp_minted, 50_000_000);
+    assert_eq!(event.x_deposited, 100_000_000);
+    assert_eq!(event.y_deposited, 100_000_000);
 }
 
 #[test]
@@ -457,7 +495,8 @@ fn withdraw_ok() {
         100_000_000,
         100_000_000,
     );
-    assert!(send(&mut setup.svm, &setup.admin, &[ix]).is_ok());
+    let res = send(&mut setup.svm, &setup.admin, &[ix]);
+    assert!(res.is_ok());
 
     assert_eq!(token_balance(&setup.svm, &setup.vault_x), 200_000_000);
     assert_eq!(token_balance(&setup.svm, &setup.vault_y), 200_000_000);
@@ -466,6 +505,13 @@ fn withdraw_ok() {
         token_balance(&setup.svm, &user_x),
         user_x_before + 100_000_000
     );
+
+    let event: events::LiquidityWithdrawn = parse_event(&res);
+    assert_eq!(event.config, setup.config);
+    assert_eq!(event.user, setup.admin.pubkey());
+    assert_eq!(event.lp_burned, 50_000_000);
+    assert_eq!(event.x_withdrawn, 100_000_000);
+    assert_eq!(event.y_withdrawn, 100_000_000);
 }
 
 #[test]
@@ -488,7 +534,8 @@ fn swap_x_for_y_routes_fee_to_treasury() {
 
     // 30 bps of 10M = 30_000 to treasury_x; net 9_970_000 into the pool.
     let ix = swap_ix(&setup, user_x, user_y, true, 10_000_000, 1);
-    assert!(send(&mut setup.svm, &setup.admin, &[ix]).is_ok());
+    let res = send(&mut setup.svm, &setup.admin, &[ix]);
+    assert!(res.is_ok());
 
     assert_eq!(token_balance(&setup.svm, &treasury_x(&setup)), 30_000);
     assert_eq!(
@@ -497,6 +544,17 @@ fn swap_x_for_y_routes_fee_to_treasury() {
     );
     assert!(token_balance(&setup.svm, &user_y) > user_y_before);
     assert!(token_balance(&setup.svm, &setup.vault_y) < 200_000_000);
+
+    let event: events::Swapped = parse_event(&res);
+    assert_eq!(event.config, setup.config);
+    assert_eq!(event.user, setup.admin.pubkey());
+    assert!(event.is_x);
+    assert_eq!(event.amount_in, 10_000_000);
+    assert_eq!(event.fee_amount, 30_000);
+    assert_eq!(
+        event.amount_out,
+        token_balance(&setup.svm, &user_y) - user_y_before
+    );
 }
 
 #[test]
@@ -565,12 +623,19 @@ fn update_fee_and_lock() {
 
     // Authority raises the fee.
     let ix = update_ix(&setup, &setup.admin, 100, false);
-    assert!(send(&mut setup.svm, &setup.admin, &[ix]).is_ok());
+    let res = send(&mut setup.svm, &setup.admin, &[ix]);
+    assert!(res.is_ok());
     let raw = setup.svm.get_account(&setup.config).unwrap();
     let mut data: &[u8] = &raw.data;
     let config = amm::state::Config::try_deserialize(&mut data).unwrap();
     assert_eq!(config.fee, 100);
     assert!(!config.locked);
+
+    let event: events::PoolUpdated = parse_event(&res);
+    assert_eq!(event.config, setup.config);
+    assert_eq!(event.authority, setup.admin.pubkey());
+    assert_eq!(event.fee, 100);
+    assert!(!event.locked);
 
     // Authority locks the pool: deposit / withdraw / swap all fail.
     let ix = update_ix(&setup, &setup.admin, 100, true);

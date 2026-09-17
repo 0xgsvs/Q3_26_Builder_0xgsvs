@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 use constant_product_curve::ConstantProduct;
 
-use crate::{constants::*, error::AmmError, state::Config};
+use crate::{constants::*, error::AmmError, events::LiquidityDeposited, state::Config};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -95,7 +95,17 @@ impl<'info> Deposit<'info> {
 
         self.deposit_tokens(true, x)?;
         self.deposit_tokens(false, y)?;
-        self.mint_lp_tokens(amount)
+        self.mint_lp_tokens(amount)?;
+
+        emit!(LiquidityDeposited {
+            config: self.config.key(),
+            user: self.user.key(),
+            lp_minted: amount,
+            x_deposited: x,
+            y_deposited: y,
+        });
+
+        Ok(())
     }
 
     pub fn deposit_tokens(&self, is_x: bool, amount: u64) -> Result<()> {

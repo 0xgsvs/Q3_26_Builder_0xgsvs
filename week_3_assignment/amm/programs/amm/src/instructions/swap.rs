@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 use constant_product_curve::{ConstantProduct, LiquidityPair};
 
-use crate::{constants::*, error::AmmError, state::Config};
+use crate::{constants::*, error::AmmError, events::Swapped, state::Config};
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
@@ -109,7 +109,18 @@ impl<'info> Swap<'info> {
 
         self.transfer_in(is_x, result.deposit)?;
         self.transfer_fee(is_x, fee_amount)?;
-        self.transfer_out(is_x, result.withdraw)
+        self.transfer_out(is_x, result.withdraw)?;
+
+        emit!(Swapped {
+            config: self.config.key(),
+            user: self.user.key(),
+            is_x,
+            amount_in,
+            fee_amount,
+            amount_out: result.withdraw,
+        });
+
+        Ok(())
     }
 
     /// Net swap amount: user -> pool vault.

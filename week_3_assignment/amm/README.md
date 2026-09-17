@@ -55,6 +55,13 @@ InvalidToken, InvalidTreasury, InvalidAuthority, NoAuthoritySet,
 InvalidAmount, InvalidPrecision, InsufficientBalance, ZeroBalance,
 CurveError, InvalidFee` (see `programs/amm/src/error.rs`).
 
+## Events
+
+Every instruction emits an event (`programs/amm/src/events.rs`, also in the
+IDL): `PoolInitialized`, `LiquidityDeposited`, `LiquidityWithdrawn`,
+`Swapped` (with `is_x, amount_in, fee_amount, amount_out`), `PoolUpdated`.
+Tests decode the `Program data:` logs and assert discriminator + fields.
+
 ## Layout
 
 - `programs/amm/src/lib.rs` — entrypoints
