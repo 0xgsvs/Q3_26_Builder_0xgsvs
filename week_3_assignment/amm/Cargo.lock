@@ -2548,7 +2548,8 @@ dependencies = [
 [[package]]
 name = "solana-awesome"
 version = "0.1.0"
-source = "git+https://github.com/blueshift-gg/solana-awesome?branch=master#f037bf803f33e08ba44da967698b8169ba639f85"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13f7e90d1f44eefee79c9f0d36f7007cf5184f344453b3f815df2a485e8b4166"
 dependencies = [
  "solana-keypair",
  "solana-message",

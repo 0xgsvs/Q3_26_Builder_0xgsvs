@@ -4,5 +4,6 @@
 "github:otter-sec/anchor" = "latest"
 "github:solana-foundation/surfpool" = "latest"
 "cargo:cargo-nextest" = "latest"
+"cargo:cargo-edit" = "latest"
 sccache = "latest"
 bun = "latest"

@@ -30,7 +30,7 @@ base64 = "0.22"
 litesvm = "0.16.0"
 litesvm-token = "0.16.0"
 # you should not need to care about the dependency compatibility
-solana-awesome = { git = "https://github.com/blueshift-gg/solana-awesome", branch = "master", features = [
+solana-awesome = { version = "0.1.0", features = [
   "pubkey",
   "keypair",
   "signer",
@@ -40,4 +40,6 @@ solana-awesome = { git = "https://github.com/blueshift-gg/solana-awesome", branc
 
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(target_os, values("solana"))',
+] }
