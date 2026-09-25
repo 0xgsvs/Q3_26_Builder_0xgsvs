@@ -1,0 +1,47 @@
+[package]
+name = "stablecoin"
+version = "0.1.0"
+description = "Remittance stablecoin on token-2022: transfer fees, KYC freeze, on-chain metadata, confidential transfers"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "stablecoin"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }
+anchor-spl = { version = "1.2.0", features = ["token_2022", "token_2022_extensions"] }
+# Version pinned to the `spl-token-2022-interface` line anchor-spl re-exports, so
+# `ProofLocation` is the same type the instruction builders expect.
+spl-token-confidential-transfer-proof-extraction = "0.5.1"
+
+[dev-dependencies]
+base64 = "0.22"
+bytemuck = "1"
+litesvm = "0.16.0"
+solana-awesome = { version = "0.1.0", features = [
+  "pubkey",
+  "keypair",
+  "signer",
+  "message",
+  "transaction",
+] }
+solana-zk-sdk = "7.0.1"
+solana-zk-elgamal-proof-interface = "0.1"
+spl-token-confidential-transfer-proof-generation = "0.6.1"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(target_os, values("solana"))',
+] }
