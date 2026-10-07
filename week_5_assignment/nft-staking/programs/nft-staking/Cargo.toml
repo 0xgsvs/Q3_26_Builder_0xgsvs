@@ -1,0 +1,45 @@
+[package]
+name = "nft-staking"
+version = "0.1.0"
+description = "Core NFT staking with claim, burn-to-earn, collection stats, and an oracle transfer gate"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "nft_staking"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }
+anchor-spl = "1.2.0"
+# mpl-core 0.12.1 pins its own anchor-lang (0.31/0.32) behind the `anchor` feature,
+# which would drag a second, incompatible anchor into the tree. We do not need it:
+# the CPI builders and account types are Borsh-only, and mpl-core + anchor-lang 1.2.0
+# both resolve to solana-account-info 3.1.1 (same `AccountInfo` type).
+mpl-core = { version = "0.12.1", default-features = false, features = ["borsh-v1"] }
+
+[dev-dependencies]
+base64 = "0.22"
+litesvm = "0.16.0"
+litesvm-token = "0.16.0"
+# you should not need to care about the dependency compatibility
+solana-awesome = { version = "0.1.1", features = [
+  "pubkey",
+  "keypair",
+  "signer",
+  "message",
+  "transaction",
+] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
