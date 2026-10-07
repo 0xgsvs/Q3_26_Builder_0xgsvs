@@ -32,3 +32,5 @@ anchor test --skip-build
 ```
 
 Tests: `vault_initialize`, `vault_deposit`, `vault_withdraw`, `vault_close`. Chained-PDA note: `vault` depends on `vault_state`, so derive `vault_state` first.
+
+![all 4 tests passing](pics/Q3_26_Builder_0xgsvs_week_2_assignment_vault.png)

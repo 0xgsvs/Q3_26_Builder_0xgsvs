@@ -88,6 +88,8 @@ bun run lint
 bun run format:check
 ```
 
+![all 6 tests passing](pics/Q3_26_Builder_0xgsvs_week_1_assignment.png)
+
 ## Notes
 
 - **Arweave permanence** — `gateway.irys.xyz/...` is not deleted by `burn`; only the on-chain `AssetV1` (`CoREENxT...`) is closed. Keep hardcoding URIs unless you need new metadata.

@@ -32,3 +32,5 @@ anchor test --skip-build
 ```
 
 Tests: `escrow_make`, `escrow_update`, `escrow_take`, `escrow_refund`. Setup creates `mint_a/mint_b`, funds `maker_ata_a` / `taker_ata_b`, derives `escrow` + vault ATA.
+
+![all 4 tests passing](pics/Q3_26_Builder_0xgsvs_week_2_assignment_escrow.png)

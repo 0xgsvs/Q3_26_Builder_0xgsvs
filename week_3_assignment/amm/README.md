@@ -85,3 +85,5 @@ Tests (15): `initialize_ok`, `initialize_rejects_fee_above_10000`,
 `swap_y_for_x_routes_fee_to_treasury`, `swap_slippage_fail`,
 `swap_wrong_treasury_fail`, `update_fee_and_lock`, `update_unauthorized_fail`,
 `update_invalid_fee_fail`.
+
+![all 15 tests passing](pics/Q3_26_Builder_0xgsvs_week_3_assignment_amm.png)
