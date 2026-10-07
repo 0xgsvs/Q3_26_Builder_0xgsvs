@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::CreateV2CpiBuilder,
-    types::{FreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair},
+    types::{
+        BurnDelegate, FreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair,
+    },
 };
 
 use crate::{constants::*, helpers::load_collection};
@@ -44,10 +46,16 @@ pub fn handle_create_asset(
 
     // The asset carries a freeze delegate owned by our PDA so staking can freeze
     // it. It starts thawed.
-    let plugins = vec![PluginAuthorityPair {
-        plugin: Plugin::FreezeDelegate(FreezeDelegate { frozen: false }),
-        authority: Some(PluginAuthority::UpdateAuthority),
-    }];
+    let plugins = vec![
+        PluginAuthorityPair {
+            plugin: Plugin::FreezeDelegate(FreezeDelegate { frozen: false }),
+            authority: Some(PluginAuthority::UpdateAuthority),
+        },
+        PluginAuthorityPair {
+            plugin: Plugin::BurnDelegate(BurnDelegate {}),
+            authority: Some(PluginAuthority::UpdateAuthority),
+        },
+    ];
 
     CreateV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset.to_account_info())

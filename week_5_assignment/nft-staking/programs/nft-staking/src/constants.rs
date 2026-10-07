@@ -14,3 +14,7 @@ pub const REWARDS_MINT: &[u8] = b"rewards_mint";
 
 #[constant]
 pub const STAKE: &[u8] = b"stake";
+
+/// One-time bonus (in reward base units) minted when a staked NFT is burned.
+#[constant]
+pub const BURN_BONUS: u64 = 1_000_000;

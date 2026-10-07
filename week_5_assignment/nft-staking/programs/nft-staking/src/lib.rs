@@ -48,6 +48,10 @@ pub mod nft_staking {
         instructions::claim_rewards::handle_claim_rewards(ctx)
     }
 
+    pub fn burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
+        instructions::burn_staked_nft::handle_burn_staked_nft(ctx)
+    }
+
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         instructions::unstake::handle_unstake(ctx)
     }
