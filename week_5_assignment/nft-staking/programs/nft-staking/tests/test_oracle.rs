@@ -13,7 +13,15 @@ use {
         InstructionData, ToAccountMetas,
     },
     litesvm::LiteSVM,
-    mpl_core::ID as MPL_CORE_ID,
+    mpl_core::{
+        accounts::BaseCollectionV1,
+        fetch_wrapped_external_plugin_adapter,
+        types::{
+            ExternalPluginAdapter, ExternalPluginAdapterKey, HookableLifecycleEvent,
+            ValidationResultsOffset,
+        },
+        ID as MPL_CORE_ID,
+    },
     solana_awesome::{
         keypair::Keypair,
         message::{Message, VersionedMessage},
@@ -255,4 +263,41 @@ fn reward_only_near_boundary() {
         before + nft_staking::ORACLE_REWARD,
         "rewarded on the open boundary"
     );
+}
+
+#[test]
+fn collection_carries_reject_only_transfer_oracle_adapter() {
+    let env = setup();
+
+    let account = env.svm.get_account(&env.collection).unwrap();
+    let collection = mpl_core::Collection::from_bytes(&account.data).unwrap();
+    assert_eq!(collection.external_plugin_adapter_list.oracles.len(), 1);
+    let oracle_plugin = &collection.external_plugin_adapter_list.oracles[0];
+    assert_eq!(oracle_plugin.base_address, env.oracle);
+    assert_eq!(oracle_plugin.results_offset, ValidationResultsOffset::Anchor);
+
+    // Build an AccountInfo so we can read the adapter's lifecycle checks from
+    // the registry record.
+    let mut lamports = account.lamports;
+    let mut data = account.data.clone();
+    let owner = account.owner;
+    let info = anchor_lang::solana_program::account_info::AccountInfo::new(
+        &env.collection,
+        false,
+        false,
+        &mut lamports,
+        &mut data,
+        &owner,
+        false,
+    );
+    let key = ExternalPluginAdapterKey::Oracle(env.oracle);
+    let (record, adapter) =
+        fetch_wrapped_external_plugin_adapter::<BaseCollectionV1>(&info, None, &key).unwrap();
+
+    assert!(matches!(adapter, ExternalPluginAdapter::Oracle(_)));
+    let checks = record.lifecycle_checks.unwrap();
+    assert_eq!(checks.len(), 1);
+    assert_eq!(checks[0].0, HookableLifecycleEvent::Transfer as u8);
+    // reject-only: can_listen = false, can_approve = false, can_reject = true.
+    assert_eq!(checks[0].1.flags, 0b100);
 }

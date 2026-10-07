@@ -2,8 +2,9 @@ use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::CreateCollectionV2CpiBuilder,
     types::{
-        Attribute, Attributes, PermanentFreezeDelegate, Plugin, PluginAuthority,
-        PluginAuthorityPair,
+        Attribute, Attributes, ExternalPluginAdapterInitInfo, ExternalCheckResult,
+        HookableLifecycleEvent, OracleInitInfo, PermanentFreezeDelegate, Plugin, PluginAuthority,
+        PluginAuthorityPair, ValidationResultsOffset,
     },
 };
 
@@ -60,6 +61,24 @@ pub fn handle_create_collection(
         },
     ];
 
+    // A reject-only Oracle external plugin adapter gates asset transfers on the
+    // per-collection oracle PDA (created later by `init_oracle`, read at Anchor
+    // offset 8).
+    let (oracle, _) = Pubkey::find_program_address(
+        &[ORACLE, collection_key.as_ref()],
+        &crate::ID,
+    );
+    let external_plugin_adapters = vec![ExternalPluginAdapterInitInfo::Oracle(OracleInitInfo {
+        base_address: oracle,
+        init_plugin_authority: Some(PluginAuthority::UpdateAuthority),
+        lifecycle_checks: vec![(
+            HookableLifecycleEvent::Transfer,
+            ExternalCheckResult { flags: 0b100 }, // reject-only
+        )],
+        base_address_config: None,
+        results_offset: Some(ValidationResultsOffset::Anchor),
+    })];
+
     CreateCollectionV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())
         .update_authority(Some(&ctx.accounts.update_authority.to_account_info()))
@@ -68,6 +87,7 @@ pub fn handle_create_collection(
         .name(name)
         .uri(uri)
         .plugins(plugins)
+        .external_plugin_adapters(external_plugin_adapters)
         .invoke_signed(&[collection_seeds, update_authority_seeds])?;
 
     Ok(())
