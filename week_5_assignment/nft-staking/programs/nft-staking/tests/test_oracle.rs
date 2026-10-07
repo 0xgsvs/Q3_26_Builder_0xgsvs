@@ -46,6 +46,22 @@ fn send_ok(
     }
 }
 
+/// Sends a transaction that is expected to fail and returns the failed meta.
+fn send_err(
+    svm: &mut LiteSVM,
+    signers: &[&Keypair],
+    ixs: &[Instruction],
+) -> litesvm::types::FailedTransactionMetadata {
+    svm.expire_blockhash();
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(ixs, Some(&signers[0].pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), signers).unwrap();
+    match svm.send_transaction(tx) {
+        Ok(meta) => panic!("transaction unexpectedly succeeded: {:?}", meta.logs),
+        Err(failed) => failed,
+    }
+}
+
 fn pda(seeds: &[&[u8]], program_id: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(seeds, program_id).0
 }
@@ -166,8 +182,8 @@ fn create_asset(env: &mut Env, asset: &Keypair) {
     send_ok(&mut env.svm, &[&env.payer, asset], &[ix]);
 }
 
-fn transfer_asset(env: &mut Env, asset: &Pubkey, new_owner: &Pubkey) {
-    let ix = Instruction::new_with_bytes(
+fn transfer_asset_ix(env: &Env, asset: &Pubkey, new_owner: &Pubkey) -> Instruction {
+    Instruction::new_with_bytes(
         env.program_id,
         &nft_staking::instruction::TransferAsset {}.data(),
         nft_staking::accounts::TransferAsset {
@@ -180,7 +196,11 @@ fn transfer_asset(env: &mut Env, asset: &Pubkey, new_owner: &Pubkey) {
             system_program: system_program::ID,
         }
         .to_account_metas(None),
-    );
+    )
+}
+
+fn transfer_asset(env: &mut Env, asset: &Pubkey, new_owner: &Pubkey) {
+    let ix = transfer_asset_ix(env, asset, new_owner);
     send_ok(&mut env.svm, &[&env.payer], &[ix]);
 }
 
@@ -359,4 +379,36 @@ fn transfer_succeeds_inside_open_hours() {
     let account = env.svm.get_account(&asset.pubkey()).unwrap();
     let asset_state = mpl_core::accounts::BaseAssetV1::from_bytes(&account.data).unwrap();
     assert_eq!(asset_state.owner, recipient.pubkey(), "asset transferred");
+}
+
+#[test]
+fn transfer_blocked_outside_open_hours() {
+    let mut env = setup();
+    let asset = Keypair::new();
+    create_asset(&mut env, &asset);
+    init_oracle(&mut env);
+
+    // 03:00 UTC: outside the window, the oracle rejects.
+    warp(&mut env.svm, ts_at_hour(3));
+    update_oracle(&mut env);
+    assert_eq!(read_oracle(&env).transfer, 1);
+
+    let recipient = Keypair::new();
+    env.svm.airdrop(&recipient.pubkey(), 1_000_000).unwrap();
+    let ix = transfer_asset_ix(&env, &asset.pubkey(), &recipient.pubkey());
+    let failed = send_err(&mut env.svm, &[&env.payer], &[ix]);
+
+    // mpl-core rejects the lifecycle: error 9 (InvalidAuthority).
+    let err = format!("{:?}", failed.err);
+    assert!(err.contains("Custom(9)"), "expected mpl-core reject, got {err}");
+    assert!(
+        failed.meta.pretty_logs().contains("Reject"),
+        "expected a Reject log, got:\n{}",
+        failed.meta.pretty_logs()
+    );
+
+    // Ownership unchanged.
+    let account = env.svm.get_account(&asset.pubkey()).unwrap();
+    let asset_state = mpl_core::accounts::BaseAssetV1::from_bytes(&account.data).unwrap();
+    assert_eq!(asset_state.owner, env.payer.pubkey(), "still owned by payer");
 }
