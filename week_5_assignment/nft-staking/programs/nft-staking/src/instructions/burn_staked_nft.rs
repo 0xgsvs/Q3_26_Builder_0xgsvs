@@ -113,7 +113,7 @@ pub fn handle_burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
 
     // Collection-level stat: the asset leaves the staked set.
     let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
-    let next = current.saturating_sub(1);
+    let next = current.checked_sub(1).ok_or(ErrorCode::TotalStakedUnderflow)?;
     UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())
         .payer(&ctx.accounts.owner.to_account_info())

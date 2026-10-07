@@ -12,4 +12,6 @@ pub enum ErrorCode {
     InvalidAccountData,
     #[msg("Numerical overflow")]
     NumericalOverflow,
+    #[msg("Total staked underflow")]
+    TotalStakedUnderflow,
 }

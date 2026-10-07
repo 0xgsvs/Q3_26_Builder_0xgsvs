@@ -41,3 +41,17 @@ pub const BOUNDARY_TOLERANCE: i64 = 60;
 
 /// Reward (lamports) paid to the caller of a boundary crank.
 pub const ORACLE_REWARD: u64 = 1_000_000;
+
+/// `reward_bps` is a rate per `SECONDS_PER_PERIOD`: an asset staked for a full
+/// period earns `reward_bps` parts per 10_000 of `REWARD_UNIT`.
+pub const SECONDS_PER_PERIOD: u64 = 86_400;
+
+/// Notional reward base units that `reward_bps` applies to.
+pub const REWARD_UNIT: u64 = 1_000_000;
+
+/// `reward_bps` denominator (basis points).
+pub const BPS_DENOMINATOR: u64 = 10_000;
+
+/// Minimum lamports kept in the oracle vault. Cranks stop paying before the
+/// vault drops below this, so the account stays rent-exempt.
+pub const VAULT_MIN_LAMPORTS: u64 = 1_000_000;

@@ -22,11 +22,9 @@ custom-panic = []
 [dependencies]
 anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }
 anchor-spl = "1.2.0"
-# mpl-core 0.12.1 pins its own anchor-lang (0.31/0.32) behind the `anchor` feature,
-# which would drag a second, incompatible anchor into the tree. We do not need it:
-# the CPI builders and account types are Borsh-only, and mpl-core + anchor-lang 1.2.0
-# both resolve to solana-account-info 3.1.1 (same `AccountInfo` type).
-mpl-core = { version = "0.12.1", default-features = false, features = ["borsh-v1"] }
+mpl-core = { version = "0.12.1", default-features = false, features = [
+  "borsh-v1",
+] }
 
 [dev-dependencies]
 litesvm = "0.16.0"
@@ -41,4 +39,7 @@ solana-awesome = { version = "0.1.1", features = [
 ] }
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(target_os, values("solana"))',
+] }
+

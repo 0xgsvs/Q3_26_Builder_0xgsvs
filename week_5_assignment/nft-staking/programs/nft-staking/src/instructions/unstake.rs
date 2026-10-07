@@ -10,7 +10,6 @@ use crate::{
     helpers::{load_collection_with_plugins, read_total_staked},
     state::StakeState,
 };
-
 #[derive(Accounts)]
 pub struct Unstake<'info> {
     #[account(mut)]
@@ -44,7 +43,7 @@ pub struct Unstake<'info> {
 pub fn handle_unstake(ctx: Context<Unstake>) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
     let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
-    let next = current.saturating_sub(1);
+    let next = current.checked_sub(1).ok_or(ErrorCode::TotalStakedUnderflow)?;
 
     let signer_seeds = &[
         UPDATE_AUTHORITY,

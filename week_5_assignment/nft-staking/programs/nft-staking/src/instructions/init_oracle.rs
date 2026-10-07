@@ -41,8 +41,6 @@ pub fn handle_init_oracle(ctx: Context<InitOracle>) -> Result<()> {
         transfer: ORACLE_REJECTED,
         burn: ORACLE_PASS,
         update: ORACLE_PASS,
-        last_slot: 0,
-        last_hour: 0,
         bump: ctx.bumps.oracle,
     });
     ctx.accounts.vault.set_inner(OracleVault {

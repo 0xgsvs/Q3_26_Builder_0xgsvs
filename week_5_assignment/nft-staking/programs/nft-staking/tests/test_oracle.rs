@@ -60,7 +60,6 @@ fn crank_rejects_outside_open_hours() {
 
     let oracle = env.read_oracle();
     assert_eq!(oracle.transfer, 1, "Rejected outside hours");
-    assert_eq!(oracle.last_hour, 3);
     assert_eq!(env.oracle_validation_bytes()[2], 1);
 }
 

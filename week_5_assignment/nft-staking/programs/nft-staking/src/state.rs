@@ -32,10 +32,6 @@ pub struct Oracle {
     pub transfer: u8,
     pub burn: u8,
     pub update: u8,
-    /// Slot of the last crank update.
-    pub last_slot: u64,
-    /// Absolute UTC hour recorded by the last crank.
-    pub last_hour: u8,
     pub bump: u8,
 }
 

@@ -44,8 +44,6 @@ pub fn handle_update_oracle(ctx: Context<UpdateOracle>) -> Result<()> {
     };
 
     ctx.accounts.oracle.transfer = transfer;
-    ctx.accounts.oracle.last_slot = clock.slot;
-    ctx.accounts.oracle.last_hour = hour;
 
     // Pay the caller only when the crank lands close to an open/close boundary.
     if near_boundary(clock.unix_timestamp) {
@@ -64,12 +62,14 @@ fn near_boundary(unix_timestamp: i64) -> bool {
     (into_day - open).abs() <= BOUNDARY_TOLERANCE || (into_day - close).abs() <= BOUNDARY_TOLERANCE
 }
 
-/// Moves `ORACLE_REWARD` lamports from the program-owned vault to the crank.
+/// Moves `ORACLE_REWARD` lamports from the program-owned vault to the crank,
+/// keeping at least `VAULT_MIN_LAMPORTS` in the vault so it stays rent-exempt.
 fn pay_reward<'info>(
     vault: &Account<'info, OracleVault>,
     crank: &UncheckedAccount<'info>,
 ) -> Result<()> {
-    let reward = ORACLE_REWARD.min(vault.to_account_info().lamports());
+    let available = vault.to_account_info().lamports().saturating_sub(VAULT_MIN_LAMPORTS);
+    let reward = ORACLE_REWARD.min(available);
     **vault.to_account_info().try_borrow_mut_lamports()? -= reward;
     **crank.to_account_info().try_borrow_mut_lamports()? += reward;
     Ok(())

@@ -59,8 +59,16 @@ pub fn handle_claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         .last_claim
         .max(ctx.accounts.stake_state.staked_at);
     let elapsed = now.saturating_sub(from) as u64;
+    // reward_bps is a rate per SECONDS_PER_PERIOD: elapsed periods, each worth
+    // reward_bps parts per 10_000 of REWARD_UNIT.
     let amount = elapsed
         .checked_mul(ctx.accounts.config.reward_bps as u64)
+        .ok_or(ErrorCode::NumericalOverflow)?
+        .checked_mul(REWARD_UNIT)
+        .ok_or(ErrorCode::NumericalOverflow)?
+        .checked_div(SECONDS_PER_PERIOD)
+        .ok_or(ErrorCode::NumericalOverflow)?
+        .checked_div(BPS_DENOMINATOR)
         .ok_or(ErrorCode::NumericalOverflow)?;
 
     if amount > 0 {
