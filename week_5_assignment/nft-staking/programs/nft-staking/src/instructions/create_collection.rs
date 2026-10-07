@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::CreateCollectionV2CpiBuilder,
     types::{
-        Attribute, Attributes, ExternalPluginAdapterInitInfo, ExternalCheckResult,
+        Attribute, Attributes, ExternalCheckResult, ExternalPluginAdapterInitInfo,
         HookableLifecycleEvent, OracleInitInfo, PermanentFreezeDelegate, Plugin, PluginAuthority,
         PluginAuthorityPair, ValidationResultsOffset,
     },
@@ -64,10 +64,7 @@ pub fn handle_create_collection(
     // A reject-only Oracle external plugin adapter gates asset transfers on the
     // per-collection oracle PDA (created later by `init_oracle`, read at Anchor
     // offset 8).
-    let (oracle, _) = Pubkey::find_program_address(
-        &[ORACLE, collection_key.as_ref()],
-        &crate::ID,
-    );
+    let (oracle, _) = Pubkey::find_program_address(&[ORACLE, collection_key.as_ref()], &crate::ID);
     let external_plugin_adapters = vec![ExternalPluginAdapterInitInfo::Oracle(OracleInitInfo {
         base_address: oracle,
         init_plugin_authority: Some(PluginAuthority::UpdateAuthority),

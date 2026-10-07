@@ -43,8 +43,7 @@ pub struct Unstake<'info> {
 
 pub fn handle_unstake(ctx: Context<Unstake>) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
-    let current =
-        read_total_staked(&load_collection_with_plugins(&ctx.accounts.collection)?, TOTAL_STAKED)?;
+    let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
     let next = current.saturating_sub(1);
 
     let signer_seeds = &[

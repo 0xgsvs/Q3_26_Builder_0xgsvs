@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::*,
     helpers::load_collection,
-    state::{Oracle, OracleVault, ORACLE_PASS, ORACLE_REJECTED},
+    state::{ORACLE_PASS, ORACLE_REJECTED, Oracle, OracleVault},
 };
 
 #[derive(Accounts)]

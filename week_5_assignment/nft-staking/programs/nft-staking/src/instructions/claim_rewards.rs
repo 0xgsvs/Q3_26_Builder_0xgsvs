@@ -1,10 +1,14 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{mint_to, Mint, MintTo, TokenAccount, TokenInterface},
+    token_interface::{Mint, MintTo, TokenAccount, TokenInterface, mint_to},
 };
 
-use crate::{constants::*, error::ErrorCode, state::{Config, StakeState}};
+use crate::{
+    constants::*,
+    error::ErrorCode,
+    state::{Config, StakeState},
+};
 
 #[derive(Accounts)]
 pub struct ClaimRewards<'info> {
@@ -49,7 +53,11 @@ pub fn handle_claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
 
     // Rewards accrue from the later of staked_at and the last claim.
-    let from = ctx.accounts.stake_state.last_claim.max(ctx.accounts.stake_state.staked_at);
+    let from = ctx
+        .accounts
+        .stake_state
+        .last_claim
+        .max(ctx.accounts.stake_state.staked_at);
     let elapsed = now.saturating_sub(from) as u64;
     let amount = elapsed
         .checked_mul(ctx.accounts.config.reward_bps as u64)
@@ -57,11 +65,7 @@ pub fn handle_claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
 
     if amount > 0 {
         let collection_key = ctx.accounts.collection.key();
-        let signer_seeds = &[
-            CONFIG,
-            collection_key.as_ref(),
-            &[ctx.accounts.config.bump],
-        ];
+        let signer_seeds = &[CONFIG, collection_key.as_ref(), &[ctx.accounts.config.bump]];
         mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.key(),

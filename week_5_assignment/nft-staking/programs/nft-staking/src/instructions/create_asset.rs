@@ -1,9 +1,7 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::CreateV2CpiBuilder,
-    types::{
-        BurnDelegate, FreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair,
-    },
+    types::{BurnDelegate, FreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair},
 };
 
 use crate::{constants::*, helpers::load_collection};
@@ -30,11 +28,7 @@ pub struct CreateAsset<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handle_create_asset(
-    ctx: Context<CreateAsset>,
-    name: String,
-    uri: String,
-) -> Result<()> {
+pub fn handle_create_asset(ctx: Context<CreateAsset>, name: String, uri: String) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
     load_collection(&ctx.accounts.collection)?;
 

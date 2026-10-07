@@ -37,11 +37,7 @@ pub struct Initialize<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handle_initialize(
-    ctx: Context<Initialize>,
-    reward_bps: u16,
-    freeze_period: u16,
-) -> Result<()> {
+pub fn handle_initialize(ctx: Context<Initialize>, reward_bps: u16) -> Result<()> {
     // Sanity bound: a reward rate above 100% per period is a misconfiguration.
     require!(reward_bps <= 10_000, ErrorCode::InvalidRewardsBps);
 
@@ -55,7 +51,6 @@ pub fn handle_initialize(
     ctx.accounts.config.set_inner(Config {
         reward_bps,
         rewards_bump: ctx.bumps.rewards_mint,
-        freeze_period,
         bump: ctx.bumps.config,
     });
 

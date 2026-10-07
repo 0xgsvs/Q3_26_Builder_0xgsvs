@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::{
     constants::*,
-    state::{Oracle, OracleVault, ORACLE_APPROVED, ORACLE_REJECTED},
+    state::{ORACLE_APPROVED, ORACLE_REJECTED, Oracle, OracleVault},
 };
 
 #[derive(Accounts)]
@@ -37,7 +37,11 @@ pub fn handle_update_oracle(ctx: Context<UpdateOracle>) -> Result<()> {
     let clock = Clock::get()?;
     let hour = utc_hour(clock.unix_timestamp);
     let open = (OPEN_HOUR..CLOSE_HOUR).contains(&hour);
-    let transfer = if open { ORACLE_APPROVED } else { ORACLE_REJECTED };
+    let transfer = if open {
+        ORACLE_APPROVED
+    } else {
+        ORACLE_REJECTED
+    };
 
     ctx.accounts.oracle.transfer = transfer;
     ctx.accounts.oracle.last_slot = clock.slot;

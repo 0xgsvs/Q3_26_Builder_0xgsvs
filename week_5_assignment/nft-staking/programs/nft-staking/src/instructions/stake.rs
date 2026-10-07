@@ -47,7 +47,11 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
     load_collection(&ctx.accounts.collection)?;
 
     // The asset must belong to the collection and be owned by the signer.
-    require_keys_eq!(asset.owner, ctx.accounts.owner.key(), ErrorCode::InvalidOwner);
+    require_keys_eq!(
+        asset.owner,
+        ctx.accounts.owner.key(),
+        ErrorCode::InvalidOwner
+    );
     require!(
         matches!(asset.update_authority, UpdateAuthority::Collection(c) if c == collection_key),
         ErrorCode::InvalidUpdateAuthority
@@ -76,7 +80,7 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
     });
 
     // Collection-level stat: increment total_staked.
-    let current = read_total_staked(&load_collection_with_plugins(&ctx.accounts.collection)?, TOTAL_STAKED)?;
+    let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
     let next = current.checked_add(1).ok_or(ErrorCode::NumericalOverflow)?;
     update_collection_total_staked(ctx, next)?;
 

@@ -1,10 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{mint_to, Mint, MintTo, TokenAccount, TokenInterface},
+    token_interface::{Mint, MintTo, TokenAccount, TokenInterface, mint_to},
 };
 use mpl_core::{
-    instructions::{BurnV1CpiBuilder, UpdateCollectionPluginV1CpiBuilder, UpdatePluginV1CpiBuilder},
+    instructions::{
+        BurnV1CpiBuilder, UpdateCollectionPluginV1CpiBuilder, UpdatePluginV1CpiBuilder,
+    },
     types::{Attribute, Attributes, FreezeDelegate, Plugin},
 };
 
@@ -95,11 +97,7 @@ pub fn handle_burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
         .invoke_signed(&[signer_seeds])?;
 
     // One-time bonus to the owner.
-    let config_seeds = &[
-        CONFIG,
-        collection_key.as_ref(),
-        &[ctx.accounts.config.bump],
-    ];
+    let config_seeds = &[CONFIG, collection_key.as_ref(), &[ctx.accounts.config.bump]];
     mint_to(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.key(),
@@ -114,8 +112,7 @@ pub fn handle_burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
     )?;
 
     // Collection-level stat: the asset leaves the staked set.
-    let current =
-        read_total_staked(&load_collection_with_plugins(&ctx.accounts.collection)?, TOTAL_STAKED)?;
+    let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
     let next = current.saturating_sub(1);
     UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())

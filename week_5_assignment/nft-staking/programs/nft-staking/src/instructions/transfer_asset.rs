@@ -26,7 +26,11 @@ pub struct TransferAsset<'info> {
 
 pub fn handle_transfer_asset(ctx: Context<TransferAsset>) -> Result<()> {
     let asset = load_asset(&ctx.accounts.asset)?;
-    require_keys_eq!(asset.owner, ctx.accounts.owner.key(), crate::error::ErrorCode::InvalidOwner);
+    require_keys_eq!(
+        asset.owner,
+        ctx.accounts.owner.key(),
+        crate::error::ErrorCode::InvalidOwner
+    );
 
     TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset.to_account_info())

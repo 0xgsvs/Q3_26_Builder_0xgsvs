@@ -24,20 +24,12 @@ pub mod nft_staking {
         instructions::create_collection::handle_create_collection(ctx, name, uri)
     }
 
-    pub fn create_asset(
-        ctx: Context<CreateAsset>,
-        name: String,
-        uri: String,
-    ) -> Result<()> {
+    pub fn create_asset(ctx: Context<CreateAsset>, name: String, uri: String) -> Result<()> {
         instructions::create_asset::handle_create_asset(ctx, name, uri)
     }
 
-    pub fn initialize(
-        ctx: Context<Initialize>,
-        reward_bps: u16,
-        freeze_period: u16,
-    ) -> Result<()> {
-        instructions::initialize::handle_initialize(ctx, reward_bps, freeze_period)
+    pub fn initialize(ctx: Context<Initialize>, reward_bps: u16) -> Result<()> {
+        instructions::initialize::handle_initialize(ctx, reward_bps)
     }
 
     pub fn stake(ctx: Context<Stake>) -> Result<()> {

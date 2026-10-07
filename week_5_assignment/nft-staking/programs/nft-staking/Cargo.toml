@@ -29,9 +29,7 @@ anchor-spl = "1.2.0"
 mpl-core = { version = "0.12.1", default-features = false, features = ["borsh-v1"] }
 
 [dev-dependencies]
-base64 = "0.22"
 litesvm = "0.16.0"
-litesvm-token = "0.16.0"
 solana-clock = "3.1"
 # you should not need to care about the dependency compatibility
 solana-awesome = { version = "0.1.1", features = [
