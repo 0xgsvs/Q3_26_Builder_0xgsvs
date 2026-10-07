@@ -14,5 +14,6 @@ pub struct Config {
 pub struct StakeState {
     pub owner: Pubkey,
     pub staked_at: i64,
+    pub last_claim: i64,
     pub bump: u8,
 }

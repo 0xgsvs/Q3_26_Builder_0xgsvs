@@ -18,4 +18,6 @@ pub enum ErrorCode {
     InvalidRewardsBps,
     #[msg("Invalid account data")]
     InvalidAccountData,
+    #[msg("Numerical overflow")]
+    NumericalOverflow,
 }

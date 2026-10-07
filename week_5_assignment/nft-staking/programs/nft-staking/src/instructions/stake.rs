@@ -66,6 +66,7 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
     ctx.accounts.stake_state.set_inner(StakeState {
         owner: ctx.accounts.owner.key(),
         staked_at: Clock::get()?.unix_timestamp,
+        last_claim: 0,
         bump: ctx.bumps.stake_state,
     });
 

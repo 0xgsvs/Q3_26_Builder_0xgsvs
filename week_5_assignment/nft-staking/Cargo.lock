@@ -1927,6 +1927,7 @@ dependencies = [
  "litesvm-token",
  "mpl-core",
  "solana-awesome",
+ "solana-clock",
 ]
 
 [[package]]
