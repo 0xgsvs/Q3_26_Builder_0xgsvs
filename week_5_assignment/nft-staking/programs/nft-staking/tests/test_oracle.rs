@@ -116,18 +116,12 @@ fn read_oracle(env: &Env) -> nft_staking::state::Oracle {
     anchor_lang::AccountDeserialize::try_deserialize(&mut data).unwrap()
 }
 
-/// Reading the oracle account, the mpl-core program must see `Anchor`-offset
-/// (8) `OracleValidation::V1` bytes: [1, create, transfer, burn, update].
-fn oracle_validation_bytes(env: &Env) -> [u8; 5] {
-    let account = env.svm.get_account(&env.oracle).expect("oracle exists");
-    account.data[8..13].try_into().unwrap()
+/// A unix timestamp whose UTC hour is `hour` (0..24).
+fn ts_at_hour(hour: i64) -> i64 {
+    1_700_000_000 / 86_400 * 86_400 + hour * 3_600
 }
 
-#[test]
-fn init_oracle_creates_account_with_anchor_offset_validation() {
-    let mut env = setup();
-    warp(&mut env.svm, 1_700_000_000); // arbitrary base time
-
+fn init_oracle(env: &mut Env) {
     let ix = Instruction::new_with_bytes(
         env.program_id,
         &nft_staking::instruction::InitOracle {}.data(),
@@ -141,6 +135,37 @@ fn init_oracle_creates_account_with_anchor_offset_validation() {
         .to_account_metas(None),
     );
     send_ok(&mut env.svm, &[&env.payer], &[ix]);
+}
+
+fn update_oracle(env: &mut Env) {
+    let ix = Instruction::new_with_bytes(
+        env.program_id,
+        &nft_staking::instruction::UpdateOracle {}.data(),
+        nft_staking::accounts::UpdateOracle {
+            crank: env.payer.pubkey(),
+            collection: env.collection,
+            oracle: env.oracle,
+            vault: env.vault,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+    send_ok(&mut env.svm, &[&env.payer], &[ix]);
+}
+
+/// Reading the oracle account, the mpl-core program must see `Anchor`-offset
+/// (8) `OracleValidation::V1` bytes: [1, create, transfer, burn, update].
+fn oracle_validation_bytes(env: &Env) -> [u8; 5] {
+    let account = env.svm.get_account(&env.oracle).expect("oracle exists");
+    account.data[8..13].try_into().unwrap()
+}
+
+#[test]
+fn init_oracle_creates_account_with_anchor_offset_validation() {
+    let mut env = setup();
+    warp(&mut env.svm, 1_700_000_000); // arbitrary base time
+
+    init_oracle(&mut env);
 
     // mpl-core reads the 5 OracleValidation bytes at Anchor offset (8).
     // Variant V1 = 1, then create/transfer/burn/update results. The oracle is
@@ -150,4 +175,20 @@ fn init_oracle_creates_account_with_anchor_offset_validation() {
     let oracle = read_oracle(&env);
     assert_eq!(oracle.variant, 1);
     assert_eq!(oracle.transfer, 1, "created Rejected");
+}
+
+#[test]
+fn crank_rejects_outside_open_hours() {
+    let mut env = setup();
+    init_oracle(&mut env);
+
+    // 03:00 UTC is outside the 09:00-17:00 window.
+    warp(&mut env.svm, ts_at_hour(3));
+    update_oracle(&mut env);
+
+    let oracle = read_oracle(&env);
+    assert_eq!(oracle.transfer, 1, "Rejected outside hours");
+    assert_eq!(oracle.last_hour, 3);
+    // mpl-core-visible bytes also reflect the rejection.
+    assert_eq!(oracle_validation_bytes(&env)[2], 1);
 }

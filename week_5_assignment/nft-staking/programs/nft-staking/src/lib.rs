@@ -59,4 +59,8 @@ pub mod nft_staking {
     pub fn init_oracle(ctx: Context<InitOracle>) -> Result<()> {
         instructions::init_oracle::handle_init_oracle(ctx)
     }
+
+    pub fn update_oracle(ctx: Context<UpdateOracle>) -> Result<()> {
+        instructions::update_oracle::handle_update_oracle(ctx)
+    }
 }
