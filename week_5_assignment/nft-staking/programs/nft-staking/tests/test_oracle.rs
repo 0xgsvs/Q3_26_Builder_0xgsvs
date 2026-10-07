@@ -145,6 +145,45 @@ fn init_oracle(env: &mut Env) {
     send_ok(&mut env.svm, &[&env.payer], &[ix]);
 }
 
+fn create_asset(env: &mut Env, asset: &Keypair) {
+    let ix = Instruction::new_with_bytes(
+        env.program_id,
+        &nft_staking::instruction::CreateAsset {
+            name: "A".into(),
+            uri: "u".into(),
+        }
+        .data(),
+        nft_staking::accounts::CreateAsset {
+            payer: env.payer.pubkey(),
+            asset: asset.pubkey(),
+            collection: env.collection,
+            update_authority: env.update_authority,
+            mpl_core_program: MPL_CORE_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+    send_ok(&mut env.svm, &[&env.payer, asset], &[ix]);
+}
+
+fn transfer_asset(env: &mut Env, asset: &Pubkey, new_owner: &Pubkey) {
+    let ix = Instruction::new_with_bytes(
+        env.program_id,
+        &nft_staking::instruction::TransferAsset {}.data(),
+        nft_staking::accounts::TransferAsset {
+            owner: env.payer.pubkey(),
+            asset: *asset,
+            collection: env.collection,
+            oracle: env.oracle,
+            new_owner: *new_owner,
+            mpl_core_program: MPL_CORE_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+    send_ok(&mut env.svm, &[&env.payer], &[ix]);
+}
+
 /// Calls the crank with `crank` as the reward recipient. The fee payer stays
 /// `env.payer`, so the crank's balance delta is exactly the reward.
 fn update_oracle_as(env: &mut Env, crank: &Pubkey) {
@@ -300,4 +339,24 @@ fn collection_carries_reject_only_transfer_oracle_adapter() {
     assert_eq!(checks[0].0, HookableLifecycleEvent::Transfer as u8);
     // reject-only: can_listen = false, can_approve = false, can_reject = true.
     assert_eq!(checks[0].1.flags, 0b100);
+}
+
+#[test]
+fn transfer_succeeds_inside_open_hours() {
+    let mut env = setup();
+    let asset = Keypair::new();
+    create_asset(&mut env, &asset);
+    init_oracle(&mut env);
+
+    // Open the gate.
+    warp(&mut env.svm, ts_at_hour(12));
+    update_oracle(&mut env);
+
+    let recipient = Keypair::new();
+    env.svm.airdrop(&recipient.pubkey(), 1_000_000).unwrap();
+    transfer_asset(&mut env, &asset.pubkey(), &recipient.pubkey());
+
+    let account = env.svm.get_account(&asset.pubkey()).unwrap();
+    let asset_state = mpl_core::accounts::BaseAssetV1::from_bytes(&account.data).unwrap();
+    assert_eq!(asset_state.owner, recipient.pubkey(), "asset transferred");
 }

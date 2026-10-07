@@ -63,4 +63,8 @@ pub mod nft_staking {
     pub fn update_oracle(ctx: Context<UpdateOracle>) -> Result<()> {
         instructions::update_oracle::handle_update_oracle(ctx)
     }
+
+    pub fn transfer_asset(ctx: Context<TransferAsset>) -> Result<()> {
+        instructions::transfer_asset::handle_transfer_asset(ctx)
+    }
 }
