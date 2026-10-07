@@ -192,3 +192,19 @@ fn crank_rejects_outside_open_hours() {
     // mpl-core-visible bytes also reflect the rejection.
     assert_eq!(oracle_validation_bytes(&env)[2], 1);
 }
+
+#[test]
+fn crank_approves_inside_open_hours() {
+    let mut env = setup();
+    init_oracle(&mut env);
+
+    // 12:00 UTC is inside the window; and 17:00 exactly is outside (half-open).
+    warp(&mut env.svm, ts_at_hour(12));
+    update_oracle(&mut env);
+    assert_eq!(read_oracle(&env).transfer, 0, "Approved at 12:00");
+    assert_eq!(oracle_validation_bytes(&env)[2], 0);
+
+    warp(&mut env.svm, ts_at_hour(17));
+    update_oracle(&mut env);
+    assert_eq!(read_oracle(&env).transfer, 1, "Rejected at 17:00");
+}
