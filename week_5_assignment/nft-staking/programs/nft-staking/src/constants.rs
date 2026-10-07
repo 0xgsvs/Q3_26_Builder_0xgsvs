@@ -18,3 +18,7 @@ pub const STAKE: &[u8] = b"stake";
 /// One-time bonus (in reward base units) minted when a staked NFT is burned.
 #[constant]
 pub const BURN_BONUS: u64 = 1_000_000;
+
+/// Collection attribute key holding the number of currently staked assets.
+#[constant]
+pub const TOTAL_STAKED: &str = "total_staked";

@@ -236,3 +236,64 @@ fn collection_is_created_with_permanent_freeze_delegate() {
     assert_eq!(collection.name, NAME);
     assert_eq!(collection.update_authority, env.update_authority);
 }
+
+fn read_total_staked(env: &Env) -> u64 {
+    let account = env.svm.get_account(&env.collection).unwrap();
+    let collection = mpl_core::Collection::from_bytes(&account.data).unwrap();
+    let attributes = collection.plugin_list.attributes.as_ref().unwrap();
+    attributes
+        .attributes
+        .attribute_list
+        .iter()
+        .find(|a| a.key == "total_staked")
+        .unwrap()
+        .value
+        .parse()
+        .unwrap()
+}
+
+#[test]
+fn total_staked_attribute_tracks_stake_and_unstake() {
+    let mut env = setup();
+    create_collection(&mut env);
+    let asset = Keypair::new();
+    create_asset(&mut env, &asset);
+    initialize(&mut env);
+
+    assert_eq!(read_total_staked(&env), 0, "fresh collection");
+
+    let stake_state = pda(&[nft_staking::STAKE, asset.pubkey().as_ref()], &env.program_id);
+    let stake_ix = Instruction::new_with_bytes(
+        env.program_id,
+        &nft_staking::instruction::Stake {}.data(),
+        nft_staking::accounts::Stake {
+            owner: env.payer.pubkey(),
+            stake_state,
+            asset: asset.pubkey(),
+            collection: env.collection,
+            update_authority: env.update_authority,
+            mpl_core_program: MPL_CORE_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+    send_ok(&mut env.svm, &[&env.payer], &[stake_ix]);
+    assert_eq!(read_total_staked(&env), 1, "after stake");
+
+    let unstake_ix = Instruction::new_with_bytes(
+        env.program_id,
+        &nft_staking::instruction::Unstake {}.data(),
+        nft_staking::accounts::Unstake {
+            owner: env.payer.pubkey(),
+            stake_state,
+            asset: asset.pubkey(),
+            collection: env.collection,
+            update_authority: env.update_authority,
+            mpl_core_program: MPL_CORE_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+    send_ok(&mut env.svm, &[&env.payer], &[unstake_ix]);
+    assert_eq!(read_total_staked(&env), 0, "after unstake");
+}

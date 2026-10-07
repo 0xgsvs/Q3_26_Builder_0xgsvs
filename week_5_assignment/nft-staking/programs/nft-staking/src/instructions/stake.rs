@@ -1,10 +1,15 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
-    instructions::UpdatePluginV1CpiBuilder,
-    types::{FreezeDelegate, Plugin, UpdateAuthority},
+    instructions::{UpdateCollectionPluginV1CpiBuilder, UpdatePluginV1CpiBuilder},
+    types::{Attribute, Attributes, FreezeDelegate, Plugin, UpdateAuthority},
 };
 
-use crate::{constants::*, error::ErrorCode, helpers::{load_asset, load_collection}, state::StakeState};
+use crate::{
+    constants::*,
+    error::ErrorCode,
+    helpers::{load_asset, load_collection, load_collection_with_plugins, read_total_staked},
+    state::StakeState,
+};
 
 #[derive(Accounts)]
 pub struct Stake<'info> {
@@ -69,6 +74,36 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
         last_claim: 0,
         bump: ctx.bumps.stake_state,
     });
+
+    // Collection-level stat: increment total_staked.
+    let current = read_total_staked(&load_collection_with_plugins(&ctx.accounts.collection)?, TOTAL_STAKED)?;
+    let next = current.checked_add(1).ok_or(ErrorCode::NumericalOverflow)?;
+    update_collection_total_staked(ctx, next)?;
+
+    Ok(())
+}
+
+/// Writes `total_staked = value` onto the collection's Attributes plugin.
+fn update_collection_total_staked(ctx: Context<Stake>, value: u64) -> Result<()> {
+    let collection_key = ctx.accounts.collection.key();
+    let signer_seeds = &[
+        UPDATE_AUTHORITY,
+        collection_key.as_ref(),
+        &[ctx.bumps.update_authority],
+    ];
+
+    UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+        .collection(&ctx.accounts.collection.to_account_info())
+        .payer(&ctx.accounts.owner.to_account_info())
+        .authority(Some(&ctx.accounts.update_authority.to_account_info()))
+        .system_program(&ctx.accounts.system_program.to_account_info())
+        .plugin(Plugin::Attributes(Attributes {
+            attribute_list: vec![Attribute {
+                key: TOTAL_STAKED.to_string(),
+                value: value.to_string(),
+            }],
+        }))
+        .invoke_signed(&[signer_seeds])?;
 
     Ok(())
 }

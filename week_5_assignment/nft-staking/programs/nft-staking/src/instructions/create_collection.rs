@@ -2,7 +2,8 @@ use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::CreateCollectionV2CpiBuilder,
     types::{
-        PermanentFreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair,
+        Attribute, Attributes, PermanentFreezeDelegate, Plugin, PluginAuthority,
+        PluginAuthorityPair,
     },
 };
 
@@ -43,10 +44,21 @@ pub fn handle_create_collection(
 
     // The collection owns a permanent freeze delegate, so the staking program can
     // freeze an asset on stake and thaw it on unstake. Its authority is this PDA.
-    let plugins = vec![PluginAuthorityPair {
-        plugin: Plugin::PermanentFreezeDelegate(PermanentFreezeDelegate { frozen: false }),
-        authority: Some(PluginAuthority::UpdateAuthority),
-    }];
+    let plugins = vec![
+        PluginAuthorityPair {
+            plugin: Plugin::PermanentFreezeDelegate(PermanentFreezeDelegate { frozen: false }),
+            authority: Some(PluginAuthority::UpdateAuthority),
+        },
+        PluginAuthorityPair {
+            plugin: Plugin::Attributes(Attributes {
+                attribute_list: vec![Attribute {
+                    key: TOTAL_STAKED.to_string(),
+                    value: "0".to_string(),
+                }],
+            }),
+            authority: Some(PluginAuthority::UpdateAuthority),
+        },
+    ];
 
     CreateCollectionV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())

@@ -4,14 +4,14 @@ use anchor_spl::{
     token_interface::{mint_to, Mint, MintTo, TokenAccount, TokenInterface},
 };
 use mpl_core::{
-    instructions::{BurnV1CpiBuilder, UpdatePluginV1CpiBuilder},
-    types::{FreezeDelegate, Plugin},
+    instructions::{BurnV1CpiBuilder, UpdateCollectionPluginV1CpiBuilder, UpdatePluginV1CpiBuilder},
+    types::{Attribute, Attributes, FreezeDelegate, Plugin},
 };
 
 use crate::{
     constants::*,
     error::ErrorCode,
-    helpers::load_collection,
+    helpers::{load_collection, load_collection_with_plugins, read_total_staked},
     state::{Config, StakeState},
 };
 
@@ -112,6 +112,23 @@ pub fn handle_burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
         ),
         BURN_BONUS,
     )?;
+
+    // Collection-level stat: the asset leaves the staked set.
+    let current =
+        read_total_staked(&load_collection_with_plugins(&ctx.accounts.collection)?, TOTAL_STAKED)?;
+    let next = current.saturating_sub(1);
+    UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+        .collection(&ctx.accounts.collection.to_account_info())
+        .payer(&ctx.accounts.owner.to_account_info())
+        .authority(Some(&ctx.accounts.update_authority.to_account_info()))
+        .system_program(&ctx.accounts.system_program.to_account_info())
+        .plugin(Plugin::Attributes(Attributes {
+            attribute_list: vec![Attribute {
+                key: TOTAL_STAKED.to_string(),
+                value: next.to_string(),
+            }],
+        }))
+        .invoke_signed(&[signer_seeds])?;
 
     Ok(())
 }

@@ -1,10 +1,15 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
-    instructions::UpdatePluginV1CpiBuilder,
-    types::{FreezeDelegate, Plugin},
+    instructions::{UpdateCollectionPluginV1CpiBuilder, UpdatePluginV1CpiBuilder},
+    types::{Attribute, Attributes, FreezeDelegate, Plugin},
 };
 
-use crate::{constants::*, error::ErrorCode, helpers::load_collection, state::StakeState};
+use crate::{
+    constants::*,
+    error::ErrorCode,
+    helpers::{load_collection_with_plugins, read_total_staked},
+    state::StakeState,
+};
 
 #[derive(Accounts)]
 pub struct Unstake<'info> {
@@ -38,7 +43,9 @@ pub struct Unstake<'info> {
 
 pub fn handle_unstake(ctx: Context<Unstake>) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
-    load_collection(&ctx.accounts.collection)?;
+    let current =
+        read_total_staked(&load_collection_with_plugins(&ctx.accounts.collection)?, TOTAL_STAKED)?;
+    let next = current.saturating_sub(1);
 
     let signer_seeds = &[
         UPDATE_AUTHORITY,
@@ -46,6 +53,7 @@ pub fn handle_unstake(ctx: Context<Unstake>) -> Result<()> {
         &[ctx.bumps.update_authority],
     ];
 
+    // Thaw the asset.
     UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset.to_account_info())
         .collection(Some(&ctx.accounts.collection.to_account_info()))
@@ -53,6 +61,20 @@ pub fn handle_unstake(ctx: Context<Unstake>) -> Result<()> {
         .authority(Some(&ctx.accounts.update_authority.to_account_info()))
         .system_program(&ctx.accounts.system_program.to_account_info())
         .plugin(Plugin::FreezeDelegate(FreezeDelegate { frozen: false }))
+        .invoke_signed(&[signer_seeds])?;
+
+    // Collection-level stat: decrement total_staked.
+    UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
+        .collection(&ctx.accounts.collection.to_account_info())
+        .payer(&ctx.accounts.owner.to_account_info())
+        .authority(Some(&ctx.accounts.update_authority.to_account_info()))
+        .system_program(&ctx.accounts.system_program.to_account_info())
+        .plugin(Plugin::Attributes(Attributes {
+            attribute_list: vec![Attribute {
+                key: TOTAL_STAKED.to_string(),
+                value: next.to_string(),
+            }],
+        }))
         .invoke_signed(&[signer_seeds])?;
 
     Ok(())
