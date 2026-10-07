@@ -1,5 +1,10 @@
 use anchor_lang::prelude::*;
-use mpl_core::instructions::CreateCollectionV2CpiBuilder;
+use mpl_core::{
+    instructions::CreateCollectionV2CpiBuilder,
+    types::{
+        PermanentFreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair,
+    },
+};
 
 use crate::constants::*;
 
@@ -36,6 +41,13 @@ pub fn handle_create_collection(
         &[ctx.bumps.update_authority],
     ];
 
+    // The collection owns a permanent freeze delegate, so the staking program can
+    // freeze an asset on stake and thaw it on unstake. Its authority is this PDA.
+    let plugins = vec![PluginAuthorityPair {
+        plugin: Plugin::PermanentFreezeDelegate(PermanentFreezeDelegate { frozen: false }),
+        authority: Some(PluginAuthority::UpdateAuthority),
+    }];
+
     CreateCollectionV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())
         .update_authority(Some(&ctx.accounts.update_authority.to_account_info()))
@@ -43,6 +55,7 @@ pub fn handle_create_collection(
         .system_program(&ctx.accounts.system_program.to_account_info())
         .name(name)
         .uri(uri)
+        .plugins(plugins)
         .invoke_signed(&[collection_seeds, update_authority_seeds])?;
 
     Ok(())

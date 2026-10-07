@@ -1,5 +1,6 @@
 pub mod constants;
 pub mod error;
+pub mod helpers;
 pub mod instructions;
 pub mod state;
 
@@ -20,6 +21,30 @@ pub mod nft_staking {
         name: String,
         uri: String,
     ) -> Result<()> {
-        crate::instructions::create_collection::handle_create_collection(ctx, name, uri)
+        instructions::create_collection::handle_create_collection(ctx, name, uri)
+    }
+
+    pub fn create_asset(
+        ctx: Context<CreateAsset>,
+        name: String,
+        uri: String,
+    ) -> Result<()> {
+        instructions::create_asset::handle_create_asset(ctx, name, uri)
+    }
+
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        reward_bps: u16,
+        freeze_period: u16,
+    ) -> Result<()> {
+        instructions::initialize::handle_initialize(ctx, reward_bps, freeze_period)
+    }
+
+    pub fn stake(ctx: Context<Stake>) -> Result<()> {
+        instructions::stake::handle_stake(ctx)
+    }
+
+    pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
+        instructions::unstake::handle_unstake(ctx)
     }
 }

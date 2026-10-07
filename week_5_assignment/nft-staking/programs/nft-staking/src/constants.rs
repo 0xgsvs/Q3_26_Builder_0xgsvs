@@ -11,3 +11,6 @@ pub const UPDATE_AUTHORITY: &[u8] = b"update_authority";
 
 #[constant]
 pub const REWARDS_MINT: &[u8] = b"rewards_mint";
+
+#[constant]
+pub const STAKE: &[u8] = b"stake";
