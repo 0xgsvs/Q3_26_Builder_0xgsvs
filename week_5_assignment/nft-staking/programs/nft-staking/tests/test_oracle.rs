@@ -137,18 +137,35 @@ fn init_oracle(env: &mut Env) {
     send_ok(&mut env.svm, &[&env.payer], &[ix]);
 }
 
-fn update_oracle(env: &mut Env) {
+/// Calls the crank with `crank` as the reward recipient. The fee payer stays
+/// `env.payer`, so the crank's balance delta is exactly the reward.
+fn update_oracle_as(env: &mut Env, crank: &Pubkey) {
     let ix = Instruction::new_with_bytes(
         env.program_id,
         &nft_staking::instruction::UpdateOracle {}.data(),
         nft_staking::accounts::UpdateOracle {
-            crank: env.payer.pubkey(),
+            crank: *crank,
             collection: env.collection,
             oracle: env.oracle,
             vault: env.vault,
             system_program: system_program::ID,
         }
         .to_account_metas(None),
+    );
+    send_ok(&mut env.svm, &[&env.payer], &[ix]);
+}
+
+fn update_oracle(env: &mut Env) {
+    let crank = env.payer.pubkey();
+    update_oracle_as(env, &crank);
+}
+
+/// Credits the oracle vault so it can pay crank rewards.
+fn fund_vault(env: &mut Env, lamports: u64) {
+    let ix = anchor_lang::solana_program::system_instruction::transfer(
+        &env.payer.pubkey(),
+        &env.vault,
+        lamports,
     );
     send_ok(&mut env.svm, &[&env.payer], &[ix]);
 }
@@ -207,4 +224,35 @@ fn crank_approves_inside_open_hours() {
     warp(&mut env.svm, ts_at_hour(17));
     update_oracle(&mut env);
     assert_eq!(read_oracle(&env).transfer, 1, "Rejected at 17:00");
+}
+
+#[test]
+fn reward_only_near_boundary() {
+    let mut env = setup();
+    init_oracle(&mut env);
+    fund_vault(&mut env, 10_000_000);
+
+    let crank = Keypair::new().pubkey();
+    env.svm.airdrop(&crank, 1_000_000).unwrap();
+    let before = env.svm.get_account(&crank).unwrap().lamports;
+
+    // 12:00, far from any boundary: state updates but no reward.
+    warp(&mut env.svm, ts_at_hour(12));
+    update_oracle_as(&mut env, &crank);
+    assert_eq!(read_oracle(&env).transfer, 0);
+    assert_eq!(
+        env.svm.get_account(&crank).unwrap().lamports,
+        before,
+        "no reward away from a boundary"
+    );
+
+    // 09:00:00 (the open boundary): reward is paid.
+    let boundary = ts_at_hour(9);
+    warp(&mut env.svm, boundary);
+    update_oracle_as(&mut env, &crank);
+    assert_eq!(
+        env.svm.get_account(&crank).unwrap().lamports,
+        before + nft_staking::ORACLE_REWARD,
+        "rewarded on the open boundary"
+    );
 }
