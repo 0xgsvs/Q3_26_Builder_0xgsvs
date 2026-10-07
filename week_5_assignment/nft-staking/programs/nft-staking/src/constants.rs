@@ -4,6 +4,9 @@ use anchor_lang::prelude::*;
 pub const CONFIG: &[u8] = b"config";
 
 #[constant]
+pub const COLLECTION: &[u8] = b"collection";
+
+#[constant]
 pub const UPDATE_AUTHORITY: &[u8] = b"update_authority";
 
 #[constant]
