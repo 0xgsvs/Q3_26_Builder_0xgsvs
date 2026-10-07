@@ -55,4 +55,8 @@ pub mod nft_staking {
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         instructions::unstake::handle_unstake(ctx)
     }
+
+    pub fn init_oracle(ctx: Context<InitOracle>) -> Result<()> {
+        instructions::init_oracle::handle_init_oracle(ctx)
+    }
 }
