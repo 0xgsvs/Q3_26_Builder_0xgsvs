@@ -1,0 +1,21 @@
+use anchor_lang::prelude::*;
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Invalid asset owner")]
+    InvalidOwner,
+    #[msg("Invalid update authority")]
+    InvalidUpdateAuthority,
+    #[msg("Invalid rewards bps")]
+    InvalidRewardsBps,
+    #[msg("Invalid account data")]
+    InvalidAccountData,
+    #[msg("Numerical overflow")]
+    NumericalOverflow,
+    #[msg("Total staked underflow")]
+    TotalStakedUnderflow,
+    #[msg("Stake does not belong to this collection")]
+    InvalidCollection,
+    #[msg("Transfer window is closed")]
+    TransferWindowClosed,
+}
