@@ -125,6 +125,37 @@ fn reward_only_near_boundary() {
     );
 }
 
+/// An empty vault must not consume the boundary: funding it later in the same
+/// window still lets a crank collect that boundary's reward.
+#[test]
+fn unfunded_boundary_is_not_consumed() {
+    let mut env = setup();
+    env.init_oracle();
+
+    let crank = Keypair::new().pubkey();
+    env.svm.airdrop(&crank, 1_000_000).unwrap();
+    let before = env.svm.get_account(&crank).unwrap().lamports;
+
+    // Open boundary with an empty vault: nothing is paid.
+    warp(&mut env.svm, ts_at_hour(9));
+    env.update_oracle_as(&crank);
+    assert_eq!(
+        env.svm.get_account(&crank).unwrap().lamports,
+        before,
+        "no payout from an empty vault"
+    );
+
+    // Fund the vault, crank the same boundary again, now it pays.
+    env.fund_vault(10_000_000);
+    warp(&mut env.svm, ts_at_hour(9) + 30);
+    env.update_oracle_as(&crank);
+    assert_eq!(
+        env.svm.get_account(&crank).unwrap().lamports,
+        before + nft_staking::ORACLE_REWARD,
+        "boundary still payable after funding"
+    );
+}
+
 #[test]
 fn collection_carries_reject_only_transfer_oracle_adapter() {
     let env = setup();
@@ -202,16 +233,12 @@ fn transfer_blocked_outside_open_hours() {
     let ix = env.transfer_asset_ix(&asset.pubkey(), &recipient.pubkey());
     let failed = send_err(&mut env.svm, &[&env.payer], &[ix]);
 
-    // mpl-core rejects the lifecycle: error 9 (InvalidAuthority).
+    // Outside the window the wrapper refuses before reaching mpl-core.
+    // ErrorCode::TransferWindowClosed (6000 + index 7).
     let err = format!("{:?}", failed.err);
     assert!(
-        err.contains("Custom(9)"),
-        "expected mpl-core reject, got {err}"
-    );
-    assert!(
-        failed.meta.pretty_logs().contains("Reject"),
-        "expected a Reject log, got:\n{}",
-        failed.meta.pretty_logs()
+        err.contains("Custom(6007)"),
+        "expected TransferWindowClosed, got {err}"
     );
 
     let account = env.svm.get_account(&asset.pubkey()).unwrap();
@@ -220,5 +247,27 @@ fn transfer_blocked_outside_open_hours() {
         asset_state.owner,
         env.payer.pubkey(),
         "still owned by payer"
+    );
+}
+
+#[test]
+fn asset_carries_permanent_transfer_delegate() {
+    let mut env = setup();
+    let asset = Keypair::new();
+    env.create_asset(&asset);
+
+    // Only the update-authority PDA can transfer, so a direct mpl-core transfer
+    // by the owner cannot bypass the window check in `transfer_asset`.
+    let account = env.svm.get_account(&asset.pubkey()).unwrap();
+    let asset_state = mpl_core::Asset::from_bytes(&account.data).unwrap();
+    let delegate = asset_state
+        .plugin_list
+        .permanent_transfer_delegate
+        .as_ref()
+        .expect("permanent transfer delegate present");
+    assert!(
+        format!("{:?}", delegate.base.authority).contains("UpdateAuthority"),
+        "delegate authority must be the update-authority PDA, got {:?}",
+        delegate.base.authority
     );
 }

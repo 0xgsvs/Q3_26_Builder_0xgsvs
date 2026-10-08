@@ -11,11 +11,15 @@ const STAKE_AT: i64 = 1_000;
 
 /// Collection + asset + config, then stake at `STAKE_AT`.
 fn setup() -> (Env, Keypair) {
+    setup_with_bps(REWARD_BPS)
+}
+
+fn setup_with_bps(reward_bps: u16) -> (Env, Keypair) {
     let mut env = Env::new();
     env.create_collection();
     let asset = Keypair::new();
     env.create_asset(&asset);
-    env.initialize(REWARD_BPS);
+    env.initialize(reward_bps);
 
     warp(&mut env.svm, STAKE_AT);
     env.stake(&asset.pubkey());
@@ -60,4 +64,43 @@ fn double_claim_does_not_double_pay_same_window() {
         / nft_staking::SECONDS_PER_PERIOD
         / nft_staking::BPS_DENOMINATOR;
     assert_eq!(token_amount(&env.svm, &ata), expected);
+}
+
+/// Total minted over many short claims must equal one claim over the same span,
+/// so the truncated fraction is carried instead of discarded.
+#[test]
+fn short_claims_carry_the_remainder() {
+    const SHORT_BPS: u16 = 1;
+    const STEPS: i64 = 24;
+    const STEP_SECS: i64 = 500;
+    let total_secs = STEPS * STEP_SECS;
+
+    let expected = total_secs as u64 * SHORT_BPS as u64 * nft_staking::REWARD_UNIT
+        / nft_staking::SECONDS_PER_PERIOD
+        / nft_staking::BPS_DENOMINATOR;
+
+    // One claim over the whole span.
+    let (mut env, asset) = setup_with_bps(SHORT_BPS);
+    let ata = env.owner_rewards_ata();
+    warp(&mut env.svm, STAKE_AT + total_secs);
+    let ix = env.claim_ix(&asset.pubkey());
+    send_ok(&mut env.svm, &[&env.payer], &[ix]);
+    assert_eq!(token_amount(&env.svm, &ata), expected, "single claim");
+
+    // The same span claimed in many short windows.
+    let (mut env, asset) = setup_with_bps(SHORT_BPS);
+    let ata = env.owner_rewards_ata();
+    for i in 1..=STEPS {
+        warp(&mut env.svm, STAKE_AT + i * STEP_SECS);
+        let ix = env.claim_ix(&asset.pubkey());
+        send_ok(&mut env.svm, &[&env.payer], &[ix]);
+    }
+    assert_eq!(
+        token_amount(&env.svm, &ata),
+        expected,
+        "many short claims must match the single claim"
+    );
+    // Subunit remainder stays below one full period's subunit total.
+    let denominator = nft_staking::SECONDS_PER_PERIOD * nft_staking::BPS_DENOMINATOR;
+    assert!(env.reward_carry(&asset.pubkey()) < denominator);
 }

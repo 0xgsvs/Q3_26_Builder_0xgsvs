@@ -46,10 +46,12 @@ pub fn handle_update_oracle(ctx: Context<UpdateOracle>) -> Result<()> {
     ctx.accounts.oracle.transfer = transfer;
 
     // Pay the caller once per open/close boundary: only when the nearby
-    // boundary is later than the last rewarded one.
+    // boundary is later than the last rewarded one. Mark it rewarded only after
+    // a positive payout, so an empty vault does not consume the boundary.
     if let Some(boundary) = nearby_boundary(clock.unix_timestamp) {
-        if boundary > ctx.accounts.oracle.last_rewarded_boundary {
-            pay_reward(&ctx.accounts.vault, &ctx.accounts.crank)?;
+        if boundary > ctx.accounts.oracle.last_rewarded_boundary
+            && pay_reward(&ctx.accounts.vault, &ctx.accounts.crank)? > 0
+        {
             ctx.accounts.oracle.last_rewarded_boundary = boundary;
         }
     }
@@ -76,10 +78,11 @@ fn nearby_boundary(unix_timestamp: i64) -> Option<i64> {
 
 /// Moves `ORACLE_REWARD` lamports from the program-owned vault to the crank,
 /// keeping at least `VAULT_MIN_LAMPORTS` in the vault so it stays rent-exempt.
+/// Returns the amount actually paid, which is zero when the vault is empty.
 fn pay_reward<'info>(
     vault: &Account<'info, OracleVault>,
     crank: &UncheckedAccount<'info>,
-) -> Result<()> {
+) -> Result<u64> {
     let available = vault
         .to_account_info()
         .lamports()
@@ -87,5 +90,5 @@ fn pay_reward<'info>(
     let reward = ORACLE_REWARD.min(available);
     **vault.to_account_info().try_borrow_mut_lamports()? -= reward;
     **crank.to_account_info().try_borrow_mut_lamports()? += reward;
-    Ok(())
+    Ok(reward)
 }

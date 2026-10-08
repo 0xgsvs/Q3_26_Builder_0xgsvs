@@ -305,6 +305,17 @@ impl Env {
             .last_claim
     }
 
+    pub fn reward_carry(&self, asset: &Pubkey) -> u64 {
+        let account = self
+            .svm
+            .get_account(&self.stake_state(asset))
+            .expect("stake state");
+        let mut data: &[u8] = &account.data;
+        nft_staking::state::StakeState::try_deserialize(&mut data)
+            .unwrap()
+            .reward_carry
+    }
+
     pub fn claim_ix(&self, asset: &Pubkey) -> Instruction {
         let ata = owner_ata(&self.rewards_mint, &self.payer.pubkey());
         Instruction::new_with_bytes(
@@ -425,6 +436,7 @@ impl Env {
                 owner: self.payer.pubkey(),
                 asset: *asset,
                 collection: self.collection,
+                update_authority: self.update_authority,
                 oracle: self.oracle(),
                 new_owner: *new_owner,
                 mpl_core_program: MPL_CORE_ID,
@@ -450,5 +462,16 @@ impl Env {
             // mpl-core clears the discriminator to a single zero byte on burn.
             Some(a) => a.data.is_empty() || a.data == [0],
         }
+    }
+
+    /// `frozen` flag of the asset's freeze delegate, or `None` if absent.
+    pub fn asset_frozen(&self, asset: &Pubkey) -> Option<bool> {
+        let account = self.svm.get_account(asset).expect("asset account");
+        let asset = mpl_core::Asset::from_bytes(&account.data).unwrap();
+        asset
+            .plugin_list
+            .freeze_delegate
+            .as_ref()
+            .map(|d| d.freeze_delegate.frozen)
     }
 }

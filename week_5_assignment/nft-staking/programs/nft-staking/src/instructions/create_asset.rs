@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::CreateV2CpiBuilder,
-    types::{BurnDelegate, FreezeDelegate, Plugin, PluginAuthority, PluginAuthorityPair},
+    types::{
+        BurnDelegate, FreezeDelegate, PermanentTransferDelegate, Plugin, PluginAuthority,
+        PluginAuthorityPair,
+    },
 };
 
 use crate::{constants::*, helpers::load_collection};
@@ -46,6 +49,12 @@ pub fn handle_create_asset(ctx: Context<CreateAsset>, name: String, uri: String)
         },
         PluginAuthorityPair {
             plugin: Plugin::BurnDelegate(BurnDelegate {}),
+            authority: Some(PluginAuthority::UpdateAuthority),
+        },
+        // Only the update-authority PDA can transfer, so the staking program's
+        // transfer wrapper is the sole path and can enforce the transfer window.
+        PluginAuthorityPair {
+            plugin: Plugin::PermanentTransferDelegate(PermanentTransferDelegate {}),
             authority: Some(PluginAuthority::UpdateAuthority),
         },
     ];

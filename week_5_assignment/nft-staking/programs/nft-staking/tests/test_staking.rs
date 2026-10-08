@@ -5,7 +5,6 @@ mod common;
 
 use anchor_lang::AccountDeserialize;
 use common::{Env, NAME, read_total_staked};
-use mpl_core::accounts::BaseCollectionV1;
 use solana_awesome::{keypair::Keypair, signer::Signer};
 
 const REWARD_BPS: u16 = 100;
@@ -19,9 +18,14 @@ fn stake_freezes_and_creates_state_then_unstake_thaws_and_closes() {
     env.initialize(REWARD_BPS);
 
     let stake_state = env.stake_state(&asset.pubkey());
+
+    // Starts thawed.
+    assert_eq!(env.asset_frozen(&asset.pubkey()), Some(false), "thawed at rest");
+
     env.stake(&asset.pubkey());
 
     assert_eq!(env.stake_state_owner(&asset.pubkey()), env.payer.pubkey());
+    assert_eq!(env.asset_frozen(&asset.pubkey()), Some(true), "frozen on stake");
 
     env.unstake(&asset.pubkey());
 
@@ -30,6 +34,11 @@ fn stake_freezes_and_creates_state_then_unstake_thaws_and_closes() {
         "stake state closed"
     );
     assert_eq!(env.asset_owner(&asset.pubkey()), env.payer.pubkey());
+    assert_eq!(
+        env.asset_frozen(&asset.pubkey()),
+        Some(false),
+        "thawed on unstake"
+    );
 }
 
 #[test]
@@ -50,9 +59,22 @@ fn collection_is_created_with_permanent_freeze_delegate() {
     env.create_collection();
 
     let account = env.svm.get_account(&env.collection).unwrap();
-    let collection = BaseCollectionV1::from_bytes(&account.data).unwrap();
-    assert_eq!(collection.name, NAME);
-    assert_eq!(collection.update_authority, env.update_authority);
+    let collection = mpl_core::Collection::from_bytes(&account.data).unwrap();
+    assert_eq!(collection.base.name, NAME);
+    assert_eq!(collection.base.update_authority, env.update_authority);
+
+    // The permanent freeze delegate must be installed, under the update
+    // authority, so the staking program can freeze assets on stake.
+    let delegate = collection
+        .plugin_list
+        .permanent_freeze_delegate
+        .as_ref()
+        .expect("permanent freeze delegate present");
+    assert!(
+        format!("{:?}", delegate.base.authority).contains("UpdateAuthority"),
+        "delegate authority must be the update-authority PDA, got {:?}",
+        delegate.base.authority
+    );
 }
 
 #[test]

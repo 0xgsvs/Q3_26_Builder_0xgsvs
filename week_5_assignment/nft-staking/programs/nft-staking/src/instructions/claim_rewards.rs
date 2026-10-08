@@ -61,15 +61,21 @@ pub fn handle_claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         .max(ctx.accounts.stake_state.staked_at);
     let elapsed = now.saturating_sub(from) as u64;
     // reward_bps is a rate per SECONDS_PER_PERIOD: elapsed periods, each worth
-    // reward_bps parts per 10_000 of REWARD_UNIT.
-    let amount = elapsed
+    // reward_bps parts per 10_000 of REWARD_UNIT. Total earned is kept in
+    // subunits and split into a minted whole plus a carried remainder, so short
+    // claims accumulate instead of discarding their fraction.
+    let numerator = elapsed
         .checked_mul(ctx.accounts.config.reward_bps as u64)
         .ok_or(ErrorCode::NumericalOverflow)?
         .checked_mul(REWARD_UNIT)
         .ok_or(ErrorCode::NumericalOverflow)?
-        .checked_div(SECONDS_PER_PERIOD)
-        .ok_or(ErrorCode::NumericalOverflow)?
-        .checked_div(BPS_DENOMINATOR)
+        .checked_add(ctx.accounts.stake_state.reward_carry)
+        .ok_or(ErrorCode::NumericalOverflow)?;
+    let denominator = SECONDS_PER_PERIOD
+        .checked_mul(BPS_DENOMINATOR)
+        .ok_or(ErrorCode::NumericalOverflow)?;
+    let amount = numerator
+        .checked_div(denominator)
         .ok_or(ErrorCode::NumericalOverflow)?;
 
     if amount > 0 {
@@ -89,6 +95,9 @@ pub fn handle_claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         )?;
     }
 
+    ctx.accounts.stake_state.reward_carry = numerator
+        .checked_rem(denominator)
+        .ok_or(ErrorCode::NumericalOverflow)?;
     ctx.accounts.stake_state.last_claim = now;
 
     Ok(())

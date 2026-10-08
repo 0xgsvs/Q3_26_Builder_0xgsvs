@@ -15,6 +15,9 @@ pub struct StakeState {
     pub collection: Pubkey,
     pub staked_at: i64,
     pub last_claim: i64,
+    /// Reward subunits accrued but not yet minted, carried across claims so
+    /// short claims do not discard their fractional remainder.
+    pub reward_carry: u64,
     pub bump: u8,
 }
 

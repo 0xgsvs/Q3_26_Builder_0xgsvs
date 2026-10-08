@@ -16,4 +16,6 @@ pub enum ErrorCode {
     TotalStakedUnderflow,
     #[msg("Stake does not belong to this collection")]
     InvalidCollection,
+    #[msg("Transfer window is closed")]
+    TransferWindowClosed,
 }
