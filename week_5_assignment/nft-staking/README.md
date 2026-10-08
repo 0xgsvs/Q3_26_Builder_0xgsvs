@@ -18,7 +18,9 @@ Built with Anchor 1.2 on top of mpl-core 0.12.
   number of staked assets.
 - **Oracle transfer gate** — an mpl-core Oracle external plugin adapter rejects
   transfers outside a UTC open window. A permissionless crank updates it and is
-  rewarded near the open/close boundaries.
+  rewarded once per open/close boundary. Assets carry a permanent transfer
+  delegate, so `transfer_asset` is the only transfer path and enforces the live
+  window itself.
 
 ## Layout
 
@@ -49,7 +51,7 @@ programs/nft-staking/
 | `unstake` | Thaw the asset and close the stake account. |
 | `init_oracle` | Create the per-collection oracle account and reward vault. |
 | `update_oracle` | Permissionless crank that opens or closes the transfer window. |
-| `transfer_asset` | Transfer an asset through mpl-core, gated by the oracle. |
+| `transfer_asset` | The only transfer path: enforces the live window, then transfers through mpl-core. |
 
 ## Reward math
 
@@ -57,21 +59,29 @@ programs/nft-staking/
 `reward_bps` parts per 10,000 of `REWARD_UNIT` (1 mint base unit, 6 decimals).
 
 ```
-amount = elapsed_seconds * reward_bps * REWARD_UNIT
-         / SECONDS_PER_PERIOD
-         / BPS_DENOMINATOR
+numerator = elapsed_seconds * reward_bps * REWARD_UNIT + reward_carry
+denominator = SECONDS_PER_PERIOD * BPS_DENOMINATOR
+amount = numerator / denominator
+reward_carry = numerator % denominator
 ```
 
-`reward_bps` is bounded at 10,000 (100%) per period in `initialize`.
+`reward_bps` is bounded at 10,000 (100%) per period in `initialize`. The
+remainder is carried in `StakeState.reward_carry`, so many short claims mint the
+same total as one claim over the same span.
 
 ## Oracle transfer window
 
 The oracle gates `Transfer`. Inside `[OPEN_HOUR, CLOSE_HOUR)` UTC the asset
-transfers; outside it mpl-core rejects the lifecycle. `init_oracle` starts the
-window closed so nothing slips through before the first crank. The crank is
-permissionless and pays `ORACLE_REWARD` when it lands within
-`BOUNDARY_TOLERANCE` seconds of either boundary, keeping `VAULT_MIN_LAMPORTS`
-in the vault.
+transfers; outside it `transfer_asset` refuses with `TransferWindowClosed`. The
+stored oracle result is refreshed from the live window before the CPI, and
+assets carry a permanent transfer delegate so a direct mpl-core transfer by the
+owner is impossible — the wrapper is the only path and enforces the window
+itself.
+
+`init_oracle` starts the window closed so nothing slips through before the first
+crank. The crank is permissionless and pays `ORACLE_REWARD` once per open/close
+boundary, only when the caller lands within `BOUNDARY_TOLERANCE` seconds of it
+and the vault can pay, keeping `VAULT_MIN_LAMPORTS` in the vault.
 
 ## Tests
 
@@ -83,8 +93,9 @@ cargo build-sbf          # build the program .so consumed by the tests
 cargo nextest run        # or: cargo test
 ```
 
-![Test suite passing: 15 tests, 0 failed](pics/Q3_26_Builder_0xgsvs_week_5_nft_staking.png)
+![Test suite passing: 18 tests, 0 failed](pics/Q3_26_Builder_0xgsvs_week_5_nft_staking.png)
 
-15 tests across 6 binaries cover collection creation, the full stake/unstake
-lifecycle, reward accrual, burn-to-earn, the collection counter, and the oracle
-transfer gate (open, closed, and boundary reward).
+18 tests across the test binaries cover collection creation, the full
+stake/unstake lifecycle with freeze/thaw checks, reward accrual including carry
+across short claims, burn-to-earn, the collection counter, and the oracle
+transfer gate (open, closed, boundary reward, and unfunded boundaries).
