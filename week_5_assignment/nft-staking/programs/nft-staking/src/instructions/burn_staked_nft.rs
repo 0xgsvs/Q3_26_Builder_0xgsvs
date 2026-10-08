@@ -71,11 +71,9 @@ pub struct BurnStakedNft<'info> {
 pub fn handle_burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
     load_collection(&ctx.accounts.collection)?;
-    let signer_seeds = &[
-        UPDATE_AUTHORITY,
-        collection_key.as_ref(),
-        &[ctx.bumps.update_authority],
-    ];
+    let signer_seeds = &[UPDATE_AUTHORITY, collection_key.as_ref(), &[ctx
+        .bumps
+        .update_authority]];
 
     // A frozen asset cannot be burned; thaw it first through the freeze delegate.
     UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
@@ -113,7 +111,9 @@ pub fn handle_burn_staked_nft(ctx: Context<BurnStakedNft>) -> Result<()> {
 
     // Collection-level stat: the asset leaves the staked set.
     let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
-    let next = current.checked_sub(1).ok_or(ErrorCode::TotalStakedUnderflow)?;
+    let next = current
+        .checked_sub(1)
+        .ok_or(ErrorCode::TotalStakedUnderflow)?;
     UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())
         .payer(&ctx.accounts.owner.to_account_info())

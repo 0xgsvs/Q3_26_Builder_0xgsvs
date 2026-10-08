@@ -42,6 +42,7 @@ pub fn handle_init_oracle(ctx: Context<InitOracle>) -> Result<()> {
         burn: ORACLE_PASS,
         update: ORACLE_PASS,
         bump: ctx.bumps.oracle,
+        last_rewarded_boundary: 0,
     });
     ctx.accounts.vault.set_inner(OracleVault {
         bump: ctx.bumps.vault,

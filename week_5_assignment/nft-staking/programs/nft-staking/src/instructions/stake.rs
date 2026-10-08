@@ -57,11 +57,9 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
         ErrorCode::InvalidUpdateAuthority
     );
 
-    let signer_seeds = &[
-        UPDATE_AUTHORITY,
-        collection_key.as_ref(),
-        &[ctx.bumps.update_authority],
-    ];
+    let signer_seeds = &[UPDATE_AUTHORITY, collection_key.as_ref(), &[ctx
+        .bumps
+        .update_authority]];
 
     UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset.to_account_info())
@@ -74,6 +72,7 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
 
     ctx.accounts.stake_state.set_inner(StakeState {
         owner: ctx.accounts.owner.key(),
+        collection: collection_key,
         staked_at: Clock::get()?.unix_timestamp,
         last_claim: 0,
         bump: ctx.bumps.stake_state,
@@ -90,11 +89,9 @@ pub fn handle_stake(ctx: Context<Stake>) -> Result<()> {
 /// Writes `total_staked = value` onto the collection's Attributes plugin.
 fn update_collection_total_staked(ctx: Context<Stake>, value: u64) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
-    let signer_seeds = &[
-        UPDATE_AUTHORITY,
-        collection_key.as_ref(),
-        &[ctx.bumps.update_authority],
-    ];
+    let signer_seeds = &[UPDATE_AUTHORITY, collection_key.as_ref(), &[ctx
+        .bumps
+        .update_authority]];
 
     UpdateCollectionPluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.collection.to_account_info())

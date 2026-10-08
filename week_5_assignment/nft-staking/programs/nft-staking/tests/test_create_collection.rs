@@ -2,10 +2,8 @@
 
 mod common;
 
-use {
-    common::{Env, NAME, URI},
-    mpl_core::{ID as MPL_CORE_ID, accounts::BaseCollectionV1},
-};
+use common::{Env, NAME, URI};
+use mpl_core::{ID as MPL_CORE_ID, accounts::BaseCollectionV1};
 
 #[test]
 fn creates_collection_via_mpl_core_cpi() {

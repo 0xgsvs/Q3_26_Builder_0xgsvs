@@ -43,13 +43,13 @@ pub struct Unstake<'info> {
 pub fn handle_unstake(ctx: Context<Unstake>) -> Result<()> {
     let collection_key = ctx.accounts.collection.key();
     let current = read_total_staked(&*load_collection_with_plugins(&ctx.accounts.collection)?)?;
-    let next = current.checked_sub(1).ok_or(ErrorCode::TotalStakedUnderflow)?;
+    let next = current
+        .checked_sub(1)
+        .ok_or(ErrorCode::TotalStakedUnderflow)?;
 
-    let signer_seeds = &[
-        UPDATE_AUTHORITY,
-        collection_key.as_ref(),
-        &[ctx.bumps.update_authority],
-    ];
+    let signer_seeds = &[UPDATE_AUTHORITY, collection_key.as_ref(), &[ctx
+        .bumps
+        .update_authority]];
 
     // Thaw the asset.
     UpdatePluginV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())

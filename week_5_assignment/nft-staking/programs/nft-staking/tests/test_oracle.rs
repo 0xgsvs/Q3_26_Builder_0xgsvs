@@ -8,18 +8,16 @@
 
 mod common;
 
-use {
-    common::{Env, send_err, warp},
-    mpl_core::{
-        accounts::{BaseAssetV1, BaseCollectionV1},
-        fetch_wrapped_external_plugin_adapter,
-        types::{
-            ExternalPluginAdapter, ExternalPluginAdapterKey, HookableLifecycleEvent,
-            ValidationResultsOffset,
-        },
+use common::{Env, send_err, warp};
+use mpl_core::{
+    accounts::{BaseAssetV1, BaseCollectionV1},
+    fetch_wrapped_external_plugin_adapter,
+    types::{
+        ExternalPluginAdapter, ExternalPluginAdapterKey, HookableLifecycleEvent,
+        ValidationResultsOffset,
     },
-    solana_awesome::{keypair::Keypair, signer::Signer},
 };
+use solana_awesome::{keypair::Keypair, signer::Signer};
 
 /// A unix timestamp whose UTC hour is `hour` (0..24).
 fn ts_at_hour(hour: i64) -> i64 {
@@ -106,6 +104,24 @@ fn reward_only_near_boundary() {
         env.svm.get_account(&crank).unwrap().lamports,
         before + nft_staking::ORACLE_REWARD,
         "rewarded on the open boundary"
+    );
+
+    // Still near the same boundary: the crank is not paid twice.
+    warp(&mut env.svm, ts_at_hour(9) + 30);
+    env.update_oracle_as(&crank);
+    assert_eq!(
+        env.svm.get_account(&crank).unwrap().lamports,
+        before + nft_staking::ORACLE_REWARD,
+        "same boundary not rewarded twice"
+    );
+
+    // The next boundary (17:00 close) is a fresh payout.
+    warp(&mut env.svm, ts_at_hour(17));
+    env.update_oracle_as(&crank);
+    assert_eq!(
+        env.svm.get_account(&crank).unwrap().lamports,
+        before + 2 * nft_staking::ORACLE_REWARD,
+        "rewarded on the close boundary"
     );
 }
 

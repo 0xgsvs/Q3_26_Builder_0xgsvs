@@ -45,21 +45,33 @@ pub fn handle_update_oracle(ctx: Context<UpdateOracle>) -> Result<()> {
 
     ctx.accounts.oracle.transfer = transfer;
 
-    // Pay the caller only when the crank lands close to an open/close boundary.
-    if near_boundary(clock.unix_timestamp) {
-        pay_reward(&ctx.accounts.vault, &ctx.accounts.crank)?;
+    // Pay the caller once per open/close boundary: only when the nearby
+    // boundary is later than the last rewarded one.
+    if let Some(boundary) = nearby_boundary(clock.unix_timestamp) {
+        if boundary > ctx.accounts.oracle.last_rewarded_boundary {
+            pay_reward(&ctx.accounts.vault, &ctx.accounts.crank)?;
+            ctx.accounts.oracle.last_rewarded_boundary = boundary;
+        }
     }
 
     Ok(())
 }
 
-/// True when `unix_timestamp` is within `BOUNDARY_TOLERANCE` seconds of the
-/// open or close boundary.
-fn near_boundary(unix_timestamp: i64) -> bool {
+/// Absolute unix timestamp of the open or close boundary within
+/// `BOUNDARY_TOLERANCE` seconds of `unix_timestamp`, if any.
+fn nearby_boundary(unix_timestamp: i64) -> Option<i64> {
+    let day = unix_timestamp.div_euclid(86_400);
     let into_day = unix_timestamp.rem_euclid(86_400);
     let open = OPEN_HOUR as i64 * 3_600;
     let close = CLOSE_HOUR as i64 * 3_600;
-    (into_day - open).abs() <= BOUNDARY_TOLERANCE || (into_day - close).abs() <= BOUNDARY_TOLERANCE
+    let offset = if (into_day - open).abs() <= BOUNDARY_TOLERANCE {
+        open
+    } else if (into_day - close).abs() <= BOUNDARY_TOLERANCE {
+        close
+    } else {
+        return None;
+    };
+    Some(day * 86_400 + offset)
 }
 
 /// Moves `ORACLE_REWARD` lamports from the program-owned vault to the crank,
@@ -68,7 +80,10 @@ fn pay_reward<'info>(
     vault: &Account<'info, OracleVault>,
     crank: &UncheckedAccount<'info>,
 ) -> Result<()> {
-    let available = vault.to_account_info().lamports().saturating_sub(VAULT_MIN_LAMPORTS);
+    let available = vault
+        .to_account_info()
+        .lamports()
+        .saturating_sub(VAULT_MIN_LAMPORTS);
     let reward = ORACLE_REWARD.min(available);
     **vault.to_account_info().try_borrow_mut_lamports()? -= reward;
     **crank.to_account_info().try_borrow_mut_lamports()? += reward;

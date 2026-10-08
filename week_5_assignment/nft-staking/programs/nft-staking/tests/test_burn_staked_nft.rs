@@ -2,10 +2,8 @@
 
 mod common;
 
-use {
-    common::{Env, send_ok, token_amount},
-    solana_awesome::{keypair::Keypair, signer::Signer},
-};
+use common::{Env, send_ok, token_amount};
+use solana_awesome::{keypair::Keypair, signer::Signer};
 
 const REWARD_BPS: u16 = 100;
 

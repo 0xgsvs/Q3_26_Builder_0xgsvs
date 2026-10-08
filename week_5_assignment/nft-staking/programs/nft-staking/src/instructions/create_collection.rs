@@ -37,11 +37,9 @@ pub fn handle_create_collection(
     let collection_key = ctx.accounts.collection.key();
     let payer_key = ctx.accounts.payer.key();
     let collection_seeds = &[COLLECTION, payer_key.as_ref(), &[ctx.bumps.collection]];
-    let update_authority_seeds = &[
-        UPDATE_AUTHORITY,
-        collection_key.as_ref(),
-        &[ctx.bumps.update_authority],
-    ];
+    let update_authority_seeds = &[UPDATE_AUTHORITY, collection_key.as_ref(), &[ctx
+        .bumps
+        .update_authority]];
 
     // The collection owns a permanent freeze delegate, so the staking program can
     // freeze an asset on stake and thaw it on unstake. Its authority is this PDA.

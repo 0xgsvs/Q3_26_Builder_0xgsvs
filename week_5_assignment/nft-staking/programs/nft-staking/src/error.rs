@@ -14,4 +14,6 @@ pub enum ErrorCode {
     NumericalOverflow,
     #[msg("Total staked underflow")]
     TotalStakedUnderflow,
+    #[msg("Stake does not belong to this collection")]
+    InvalidCollection,
 }

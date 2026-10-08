@@ -5,22 +5,20 @@
 
 #![allow(dead_code)]
 
-use {
-    anchor_lang::{
-        AccountDeserialize, InstructionData, ToAccountMetas,
-        prelude::Pubkey,
-        solana_program::{instruction::Instruction, system_program},
-    },
-    litesvm::LiteSVM,
-    mpl_core::{ID as MPL_CORE_ID, accounts::BaseAssetV1},
-    solana_awesome::{
-        keypair::Keypair,
-        message::{Message, VersionedMessage},
-        signer::Signer,
-        transaction::versioned::VersionedTransaction,
-    },
-    solana_clock::Clock,
+use anchor_lang::{
+    AccountDeserialize, InstructionData, ToAccountMetas,
+    prelude::Pubkey,
+    solana_program::{instruction::Instruction, system_program},
 };
+use litesvm::LiteSVM;
+use mpl_core::{ID as MPL_CORE_ID, accounts::BaseAssetV1};
+use solana_awesome::{
+    keypair::Keypair,
+    message::{Message, VersionedMessage},
+    signer::Signer,
+    transaction::versioned::VersionedTransaction,
+};
+use solana_clock::Clock;
 
 pub const NAME: &str = "Collection";
 pub const URI: &str = "https://example.com/c.json";

@@ -13,8 +13,9 @@ pub struct CreateAsset<'info> {
     /// CHECK: created by the mpl-core CPI.
     #[account(mut)]
     pub asset: Signer<'info>,
-    /// CHECK: mpl-core collection, deserialized in the handler.
-    #[account(mut)]
+    /// CHECK: mpl-core collection, deserialized in the handler and matched to
+    /// the collection PDA derived from the payer.
+    #[account(mut, seeds = [COLLECTION, payer.key().as_ref()], bump)]
     pub collection: UncheckedAccount<'info>,
     /// CHECK: PDA update authority of the collection.
     #[account(
@@ -32,11 +33,9 @@ pub fn handle_create_asset(ctx: Context<CreateAsset>, name: String, uri: String)
     let collection_key = ctx.accounts.collection.key();
     load_collection(&ctx.accounts.collection)?;
 
-    let signer_seeds = &[
-        UPDATE_AUTHORITY,
-        collection_key.as_ref(),
-        &[ctx.bumps.update_authority],
-    ];
+    let signer_seeds = &[UPDATE_AUTHORITY, collection_key.as_ref(), &[ctx
+        .bumps
+        .update_authority]];
 
     // The asset carries a freeze delegate owned by our PDA so staking can freeze
     // it. It starts thawed.

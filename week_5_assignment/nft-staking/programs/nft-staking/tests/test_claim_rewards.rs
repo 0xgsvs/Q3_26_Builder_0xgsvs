@@ -2,11 +2,9 @@
 
 mod common;
 
-use {
-    common::{Env, send_ok, token_amount, warp},
-    mpl_core::accounts::BaseAssetV1,
-    solana_awesome::{keypair::Keypair, signer::Signer},
-};
+use common::{Env, send_ok, token_amount, warp};
+use mpl_core::accounts::BaseAssetV1;
+use solana_awesome::{keypair::Keypair, signer::Signer};
 
 const REWARD_BPS: u16 = 100;
 const STAKE_AT: i64 = 1_000;

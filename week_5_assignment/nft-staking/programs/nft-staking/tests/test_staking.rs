@@ -3,12 +3,10 @@
 
 mod common;
 
-use {
-    anchor_lang::AccountDeserialize,
-    common::{Env, NAME, read_total_staked},
-    mpl_core::accounts::BaseCollectionV1,
-    solana_awesome::{keypair::Keypair, signer::Signer},
-};
+use anchor_lang::AccountDeserialize;
+use common::{Env, NAME, read_total_staked};
+use mpl_core::accounts::BaseCollectionV1;
+use solana_awesome::{keypair::Keypair, signer::Signer};
 
 const REWARD_BPS: u16 = 100;
 

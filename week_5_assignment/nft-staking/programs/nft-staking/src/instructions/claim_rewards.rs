@@ -19,6 +19,7 @@ pub struct ClaimRewards<'info> {
         seeds = [STAKE, asset.key().as_ref()],
         bump = stake_state.bump,
         has_one = owner @ ErrorCode::InvalidOwner,
+        has_one = collection @ ErrorCode::InvalidCollection,
     )]
     pub stake_state: Account<'info, StakeState>,
     /// CHECK: the staked asset; only used to derive the stake PDA.
@@ -28,7 +29,7 @@ pub struct ClaimRewards<'info> {
         bump = config.bump,
     )]
     pub config: Account<'info, Config>,
-    /// CHECK: the collection, matched against the config seeds above.
+    /// CHECK: the collection, matched against the stake state and config seeds.
     pub collection: UncheckedAccount<'info>,
     #[account(
         mut,

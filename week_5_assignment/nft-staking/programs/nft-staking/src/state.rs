@@ -12,6 +12,7 @@ pub struct Config {
 #[derive(InitSpace)]
 pub struct StakeState {
     pub owner: Pubkey,
+    pub collection: Pubkey,
     pub staked_at: i64,
     pub last_claim: i64,
     pub bump: u8,
@@ -33,6 +34,9 @@ pub struct Oracle {
     pub burn: u8,
     pub update: u8,
     pub bump: u8,
+    /// Absolute unix timestamp of the last rewarded boundary, or 0. Guards
+    /// against paying the same boundary more than once.
+    pub last_rewarded_boundary: i64,
 }
 
 /// `Oracle` account layout: Approved = 0, Rejected = 1, Pass = 2.

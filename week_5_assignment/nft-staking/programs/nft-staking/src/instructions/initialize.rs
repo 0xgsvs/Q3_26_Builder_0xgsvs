@@ -15,8 +15,9 @@ pub struct Initialize<'info> {
         bump,
     )]
     pub config: Account<'info, Config>,
-    /// CHECK: mpl-core collection, deserialized in the handler.
-    #[account(mut)]
+    /// CHECK: mpl-core collection, deserialized in the handler and matched to
+    /// the collection PDA derived from the admin.
+    #[account(mut, seeds = [COLLECTION, admin.key().as_ref()], bump)]
     pub collection: UncheckedAccount<'info>,
     /// CHECK: PDA update authority of the collection.
     #[account(

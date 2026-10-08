@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
-use mpl_core::Collection;
-use mpl_core::accounts::{BaseAssetV1, BaseCollectionV1};
+use mpl_core::{
+    Collection,
+    accounts::{BaseAssetV1, BaseCollectionV1},
+};
 
 use crate::{constants::TOTAL_STAKED, error::ErrorCode};
 
